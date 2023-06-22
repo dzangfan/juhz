@@ -6,7 +6,7 @@
 (define-language juhz
   "\\s+"
   (EQ "=") (SEMICOLON ";") (DOT "\\.") (COMMA ",")
-  (PLUS "\\+") (MINUS "-") (TIMES "\\*") (DIVIDE "/")
+  (PLUS "\\+") (MINUS "-") (TIMES "\\*") (DIVIDE "/") (REM "%")
   (AND "&&") (OR "\\|\\|") (BANG "!")
   (LT "<") (GT ">") (SAME "==") (DIFF "!=") (LE "<=") (GE ">=")
   (ROUNDLEFT "\\(") (ROUNDRIGHT "\\)")
@@ -16,27 +16,70 @@
   (NUMBER "(?:[1-9][0-9]*)|0|(?:(?:[1-9][0-9]*)?\\.[0-9]+)")
   (STRING "\"(?:\\\\\"|\\\\n|\\\\\\\\|[^\"\\\\])*\"")
   (TRUE "true") (FALSE "false")
-  (IF "if") (ELSE "else") (WHILE "while") (PACKAGE "package") (DEF "def")
+  (IF "if") (ELSE "else") (WHILE "while") (PACKAGE "package") (FUNCTION "function") (DEF "def")
   (program statement (statement program))
+  ;; println("Hello world!\n");
+  ;; def name = "Juhz";
+  ;; def name = {
+  ;;   println("...");
+  ;;   "Juhz";
+  ;; }
+  ;; def isEven(n) = n % 2 == 0;
+  ;; def isOdd(n) = {
+  ;;   !isEven(n)
+  ;; }
+  ;; def Employee(name, position) = package {
+  ;;   name = name;
+  ;;   email = format("~A.~A@mail.com", name, position);
+  ;; }
+  ;; if isOdd(2) {
+  ;;   println("yes");
+  ;; } else {
+  ;;   println("no");
+  ;; }
+  ;; while x < 10 {
+  ;;   x = x + 1
+  ;; }
   (statement (expression SEMICOLON)
-             (DEF left-value EQ expression SEMICOLON)
-             (DEF left-value EQ CURLYLEFT program CURLYRIGHT)
-             (IDENT EQ expression SEMICOLON)
-             (IDENT EQ CURLYLEFT program CURLYRIGHT)
+             (DEF left-value EQ right-value)
+             (IDENT EQ right-value)
              (IF expression CURLYLEFT program CURLYRIGHT)
              (IF expression CURLYLEFT program CURLYRIGHT ELSE CURLYLEFT program CURLYRIGHT)
              (WHILE expression CURLYLEFT program CURLYRIGHT))
   (left-value IDENT (IDENT ROUNDLEFT ROUNDRIGHT) (IDENT ROUNDLEFT parameter-list ROUNDRIGHT))
+  (right-value (expression SEMICOLON)
+               (CURLYLEFT program CURLYRIGHT)
+               package
+               function)
   (parameter-list IDENT (IDENT COMMA parameter-list))
-  (expression array package operation)
+  (expression array package function operation)
   (atom NUMBER STRING TRUE FALSE)
   (callable IDENT call indexing selection)
   (call (callable ROUNDLEFT ROUNDRIGHT) (callable ROUNDLEFT argument-list ROUNDRIGHT))
+  ;; [1, 1, a, b, a + b]
   (array (SQUARELEFT SQUARERIGHT) (SQUARELEFT argument-list SQUARERIGHT))
+  ;; package { def foo = bar; }
+  ;; package() { def foo = bar; }
+  ;; package(foo) { def bar = 10; def foo = bar; }
   (package (PACKAGE CURLYLEFT program CURLYRIGHT)
            (PACKAGE ROUNDLEFT ROUNDRIGHT CURLYLEFT program CURLYRIGHT)
            (PACKAGE ROUNDLEFT parameter-list ROUNDRIGHT CURLYLEFT program CURLYRIGHT))
+  ;; function { println("bang!"); }
+  ;; function() { println("bang!"); }
+  ;; function(x) { x + 1; }
+  (function (FUNCTION CURLYLEFT program CURLYRIGHT)
+            (FUNCTION ROUNDLEFT ROUNDRIGHT CURLYLEFT program CURLYRIGHT)
+            (FUNCTION ROUNDLEFT parameter-list ROUNDRIGHT CURLYLEFT program CURLYRIGHT))
+  ;; array[10]
+  ;; assoc(elt, lst)[2]
+  ;; matrix[0][1]
+  ;; company.staff[0]
   (indexing (callable SQUARELEFT expression SQUARERIGHT))
+  ;; object.name
+  ;; pwd().name
+  ;; objects[0].name
+  ;; company.staff.name
+  ;; company.staff.retire("now")
   (selection (callable DOT IDENT))
   (argument-list expression (expression COMMA argument-list))
   (operation operation#0)
@@ -51,7 +94,7 @@
   (operation#4 operation#5 (operation#4 operator#4 operation#5))
   (operator#4 PLUS MINUS)
   (operation#5 operation#6 (operation#5 operator#5 operation#6))
-  (operator#5 TIMES DIVIDE)
+  (operator#5 TIMES DIVIDE REM)
   (operation#6 atom callable (operator#6 operation#6))
   (operator#6 BANG PLUS MINUS))
 
@@ -79,18 +122,18 @@
   [(program @statement @program)
    (cons2 (simplify statement) (simplify program))]
   [(statement @expression SEMICOLON) (simplify expression)]
-  [(statement DEF @left-value EQ @expression SEMICOLON)
-   (list 'definition (simplify left-value) (simplify expression))]
-  [(statement DEF @left-value EQ _ @program _)
-   (list 'definition (simplify left-value) (simplify program))]
-  [(statement @IDENT EQ @expression SEMICOLON)
-   (list 'assignment IDENT (simplify expression))]
-  [(statement @IDENT EQ _ @program _)
-   (list 'assignment IDENT (simplify program))]
+  [(statement DEF @left-value EQ @right-value)
+   (list 'definition (simplify left-value) (simplify right-value))]
+  [(statement @IDENT EQ @right-value)
+   (list 'assignment IDENT (simplify right-value))]
   [(left-value @IDENT) IDENT]
   [(left-value @IDENT _ _) (list 'function IDENT)]
   [(left-value @IDENT _ @parameter-list _)
    (list 'function IDENT (simplify parameter-list))]
+  [(right-value @expression SEMICOLON) (simplify expression)]
+  [(right-value CURLYLEFT @program CURLYRIGHT) (simplify program)]
+  [(right-value @package) (simplify package)]
+  [(right-value @function) (simplify function)]
   [(parameter-list @IDENT COMMA @parameter-list)
    (cons2 IDENT (simplify parameter-list))]
   [(statement IF $condition _ @program _)
@@ -112,6 +155,11 @@
    (cons2 (list 'parameter-list) (repl 'package (simplify program)))]
   [(package _ _ @parameter-list _ _ @program _)
    (cons2 (simplify parameter-list) (repl 'package (simplify program)))]
+  [(function _ _ @program _) (repl 'function (simplify program))]
+  [(function _ _ _ _ @program _)
+   (cons2 (list 'parameter-list) (repl 'function (simplify program)))]
+  [(function _ _ @parameter-list _ _ @program _)
+   (cons2 (simplify parameter-list) (repl 'function (simplify program)))]
   [(indexing @callable _ @expression _) (list 'indexing (simplify callable) (simplify expression))]
   [(selection (callable @selection) DOT @IDENT)
    (append (simplify selection) (list IDENT))]
