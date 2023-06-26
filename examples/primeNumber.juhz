@@ -1,0 +1,25 @@
+def isPrime(number) = {
+  def check(i) = {
+    if i >= number {
+      true;
+    } else {
+      if number % i == 0 {
+        false;
+      } else {
+        check(i + 1);
+      }
+    }
+  }
+  check(2);
+}
+
+def counter = 0;
+def candidate = 2;
+
+while counter < 100 {
+  if isPrime(candidate) {
+    println(candidate);
+    counter = counter + 1;
+  }
+  candidate = candidate + 1;
+}
