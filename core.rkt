@@ -16,8 +16,10 @@
   (NUMBER "(?:[1-9][0-9]*)|0|(?:(?:[1-9][0-9]*)?\\.[0-9]+)")
   (STRING "\"(?:\\\\\"|\\\\n|\\\\\\\\|[^\"\\\\])*\"")
   (TRUE "true") (FALSE "false")
-  (IF "if") (ELSE "else") (WHILE "while") (PACKAGE "package") (FUNCTION "function") (DEF "def")
+  (IF "if") (ELSE "else") (WHILE "while") (PACKAGE "package")
+  (FUNCTION "function") (DEF "def") (USE "use")
   (program statement (statement program))
+  ;; use package.stdio;
   ;; println("Hello world!\n");
   ;; def name = "Juhz";
   ;; def name = {
@@ -41,6 +43,7 @@
   ;;   x = x + 1
   ;; }
   (statement (expression SEMICOLON)
+             (USE expression SEMICOLON)
              (DEF left-value EQ right-value)
              (IDENT EQ right-value)
              (IF expression CURLYLEFT program CURLYRIGHT)
@@ -80,7 +83,8 @@
   ;; objects[0].name
   ;; company.staff.name
   ;; company.staff.retire("now")
-  (selection (callable DOT IDENT))
+  (selection (callable DOT IDENT)
+             (PACKAGE DOT IDENT))
   (argument-list expression (expression COMMA argument-list))
   (operation operation#0)
   (operation#0 operation#1 (expression operator#0 operation#1))
@@ -121,6 +125,8 @@
    (list 'operation operator (simplify operand))]
   [(program @statement @program)
    (cons2 (simplify statement) (simplify program))]
+  [(statement USE @expression SEMICOLON)
+   (list 'use (simplify expression))]
   [(statement @expression SEMICOLON) (simplify expression)]
   [(statement DEF @left-value EQ @right-value)
    (list 'definition (simplify left-value) (simplify right-value))]
@@ -163,6 +169,8 @@
   [(indexing @callable _ @expression _) (list 'indexing (simplify callable) (simplify expression))]
   [(selection (callable @selection) DOT @IDENT)
    (append (simplify selection) (list IDENT))]
+  [(selection PACKAGE DOT @IDENT)
+   (list 'selection/package IDENT)]
   [(selection @callable DOT @IDENT)
    (list 'selection (simplify callable) IDENT)]
   [(argument-list @expression COMMA @argument-list)

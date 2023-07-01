@@ -114,7 +114,7 @@
 
 (define-generic-mode juhz-mode
   ()
-  '("if" "else" "while" "package" "function" "def")
+  '("if" "else" "while" "package" "function" "def" "use")
   '(("\\([a-zA-Z_][a-zA-Z0-9_]*\\)(.*)" 1 font-lock-function-name-face)
     ("\\<[a-zA-Z_][a-zA-Z0-9_]*\\>" . font-lock-variable-name-face)
     ("\\([1-9][0-9]*\\)\\|0\\|\\(\\([1-9][0-9]*\\)?\\.[0-9]+\\)" . font-lock-constant-face)
