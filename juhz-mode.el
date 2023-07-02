@@ -109,8 +109,33 @@
 	(indent-line-to 0)
       (indent-line-to indentation))))
 
+(defvar juhz-mode--brackets
+  '((?\( ?\))
+    (?\[ ?\])
+    (?\{ ?\})))
+
+(defun juhz-mode--between-curly-bracket-p ()
+  (cl-block check-around
+    (dolist (bracket juhz-mode--brackets)
+      (when (and (/= 1 (line-number-at-pos))
+		 (juhz-mode--line-match-p (format "\\s-*%c" (second bracket)))
+		 (save-excursion (previous-line)
+				 (juhz-mode--line-match-p (format "%c\\s-*$" (first bracket)))))
+	(cl-return-from check-around t)))))
+
+(defun juhz-mode--post-self-insert ()
+  (when (and (eq ?\n (char-before)) (juhz-mode--between-curly-bracket-p))
+    (indent-for-tab-command)
+    (previous-line)
+    (end-of-line)
+    (newline-and-indent)))
+
 (defun juhz-mode--initialize-buffer ()
-  (setq-local indent-line-function 'juhz-mode--indent-line-function))
+  (setq-local indent-line-function 'juhz-mode--indent-line-function)
+  (setq-local post-self-insert-hook
+	      (if (memq 'juhz-mode--post-self-insert post-self-insert-hook)
+		  post-self-insert-hook
+		(cons 'juhz-mode--post-self-insert post-self-insert-hook))))
 
 (define-generic-mode juhz-mode
   ()
