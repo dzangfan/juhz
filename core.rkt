@@ -125,6 +125,16 @@
          elt
          (rest lst)))
 
+(define (cons-to-2 elt lst)
+  (match lst
+    [(list first second rest ...)
+     (list* first (cons elt second) rest)]))
+
+(define (append-to-2 elt lst)
+  (match lst
+    [(list first second rest ...)
+     (list* first (append second (list elt)) rest)]))
+
 (define (insert-code-block simplified-call simplified-expression/program [simplified-parameter-list null])
   (define add-parameter-list
     (if (null? simplified-parameter-list)
@@ -139,9 +149,9 @@
        (~>> expression list (cons 'function) add-parameter-list)]))
   (match simplified-call
     [(list 'call callable)
-     `(call ,callable (argument-list ,function))]
-    [(list 'call callable (list 'argument-list parameters ...))
-     `(call ,callable (argument-list ,@parameters ,function))]))
+     `(call ,callable (argument-list (,function)))]
+    [(list 'call callable (list 'argument-list (list arguments ...)))
+     `(call ,callable (argument-list (,@arguments ,function)))]))
 
 (define-visitor simplify
   [($operation $expression)
@@ -153,8 +163,10 @@
    (list 'operation (simplify operand#0) operator (simplify operand#1))]
   [(operation#6 (_ $operator) $operand)
    (list 'operation operator (simplify operand))]
+  [(program @statement)
+   (list 'program (list (simplify statement)))]
   [(program @statement @program)
-   (cons2 (simplify statement) (simplify program))]
+   (cons-to-2 (simplify statement) (simplify program))]
   [(statement USE @expression SEMICOLON)
    (list 'use (simplify expression))]
   [(statement @expression SEMICOLON) (simplify expression)]
@@ -176,8 +188,9 @@
   [(right-value CURLYLEFT @program CURLYRIGHT) (simplify program)]
   [(right-value @package) (simplify package)]
   [(right-value @function) (simplify function)]
+  [(parameter-list @IDENT) (list 'parameter-list (list IDENT))]
   [(parameter-list @IDENT COMMA @parameter-list)
-   (cons2 IDENT (simplify parameter-list))]
+   (cons-to-2 IDENT (simplify parameter-list))]
   [(statement IF $condition _ @program _)
    (list 'if (simplify condition) (simplify program))]
   [(statement IF $condition _ $true-case _ _ _ $false-case _)
@@ -204,13 +217,15 @@
    (cons2 (simplify parameter-list) (repl 'function (simplify program)))]
   [(indexing @callable _ @expression _) (list 'indexing (simplify callable) (simplify expression))]
   [(selection (callable @selection) DOT @IDENT)
-   (append (simplify selection) (list IDENT))]
+   (append-to-2 IDENT (simplify selection))]
   [(selection PACKAGE DOT @IDENT)
-   (list 'selection/package IDENT)]
+   (list 'selection/package (list IDENT))]
   [(selection @callable DOT @IDENT)
-   (list 'selection (simplify callable) IDENT)]
+   (list 'selection (list (simplify callable) IDENT))]
+  [(argument-list @expression)
+   (list 'argument-list (list (simplify expression)))]
   [(argument-list @expression COMMA @argument-list)
-   (cons2 (simplify expression) (simplify argument-list))]
+   (cons-to-2 (simplify expression) (simplify argument-list))]
   [($wrapper $any)
    (list wrapper (simplify any))]
   [$others others])
