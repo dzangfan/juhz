@@ -2,6 +2,7 @@
 
 (require basic-cc/language)
 (require basic-cc/visitor)
+(require basic-cc/tokenization)
 (require threading)
 
 (define-language juhz
@@ -218,3 +219,61 @@
   (simplify (juhz-read in #:file file)))
 
 (provide juhz-cut juhz-read juhz-read/AST (rename-out [simplify juhz-simplify]))
+
+(struct juhz-package (property using) #:transparent)
+
+;; NUMBER
+;; STRING
+;; BOOLEAN
+;; ARRAY
+;; PACKAGE
+;; FUNCTION
+(struct juhz-object (type value package) #:transparent)
+
+(define (empty-package) (juhz-package #hash() null))
+
+(define root-package (empty-package))
+
+(define (root-package? package) (eq? package root-package))
+
+(define (lookup-in-package/direct package name)
+  (~> package juhz-package-property (hash-ref name #f)))
+
+(define (lookup-in-package package name)
+  (and (not (root-package? package))
+       (lookup-in-package/direct package name)
+       (for/first ([using-package (juhz-package-using package)]
+                   #:do [(define result (lookup-in-package using-package))]
+                   #:when result)
+         result)))
+
+(define (extend-package package name object)
+  (match package [(struct juhz-package (property using))
+                  (juhz-package (hash-set property name object)
+                                using)]))
+
+(define juhz-TRUE (juhz-object 'BOOLEAN true (empty-package)))
+
+(define juhz-FALSE (juhz-object 'BOOLEAN false (empty-package)))
+
+(define (run-hook name name-location object arguments)
+  (define hook (format "__~A__" name))
+  (define hook/IDENT (token 'IDENT hook name-location))
+  `(call (selection ,object ,hook/IDENT) (argument-list ,@arguments)))
+
+#;(define-visitor (eval-AST environment)
+    [(operation $operand#0 OR $operand#1)
+     (define first-result (eval-AST operand#0))
+     (if (eq? juhz-FALSE first-result)
+         (eval-AST operand#1)
+         first-result)]
+    [(operation $operand#0 AND $operand#1)
+     (define first-result (eval-AST operand#0))
+     (if (eq? juhz-FALSE first-result)
+         juhz-FALSE
+         (eval-AST operand#1))]
+    [(operation $operand#0 $operator $operand#1)
+     (~> (run-hook (token-type operator) (token-location operator) operand#0 operand#1)
+         eval-AST)]
+    [(program)
+     0])
