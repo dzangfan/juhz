@@ -2,10 +2,11 @@
 
 (require basic-cc/language)
 (require basic-cc/visitor)
+(require threading)
 
 (define-language juhz
   "\\s+"
-  (EQ "=") (SEMICOLON ";") (DOT "\\.") (COMMA ",")
+  (EQ "=") (SEMICOLON ";") (DOT "\\.") (COMMA ",") (COLON ":")
   (PLUS "\\+") (MINUS "-") (TIMES "\\*") (DIVIDE "/") (REM "%")
   (AND "&&") (OR "\\|\\|") (BANG "!")
   (LT "<") (GT ">") (SAME "==") (DIFF "!=") (LE "<=") (GE ">=")
@@ -42,13 +43,23 @@
   ;; while x < 10 {
   ;;   x = x + 1
   ;; }
+  ;; when(x < 10): println(x);
+  ;; when(x < 10): {
+  ;;   println(x);
+  ;; }
+  ;; when(getHash(tbl, "foo")) (it) {
+  ;;   println(it);
+  ;; }
   (statement (expression SEMICOLON)
              (USE expression SEMICOLON)
              (DEF left-value EQ right-value)
              (IDENT EQ right-value)
              (IF expression CURLYLEFT program CURLYRIGHT)
              (IF expression CURLYLEFT program CURLYRIGHT ELSE CURLYLEFT program CURLYRIGHT)
-             (WHILE expression CURLYLEFT program CURLYRIGHT))
+             (WHILE expression CURLYLEFT program CURLYRIGHT)
+             (call COLON expression SEMICOLON)
+             (call COLON CURLYLEFT program CURLYRIGHT)
+             (call COLON ROUNDLEFT parameter-list ROUNDRIGHT CURLYLEFT program CURLYRIGHT))
   (left-value IDENT (IDENT ROUNDLEFT ROUNDRIGHT) (IDENT ROUNDLEFT parameter-list ROUNDRIGHT))
   (right-value (expression SEMICOLON)
                (CURLYLEFT program CURLYRIGHT)
@@ -113,6 +124,24 @@
          elt
          (rest lst)))
 
+(define (insert-code-block simplified-call simplified-expression/program [simplified-parameter-list null])
+  (define add-parameter-list
+    (if (null? simplified-parameter-list)
+        identity
+        (lambda (function)
+          (cons2 simplified-parameter-list function))))
+  (define function
+    (match simplified-expression/program
+      [(and program (list 'program _ ...))
+       (~>> program (repl 'function) add-parameter-list)]
+      [expression
+       (~>> expression list (cons 'function) add-parameter-list)]))
+  (match simplified-call
+    [(list 'call callable)
+     `(call ,callable (argument-list ,function))]
+    [(list 'call callable (list 'argument-list parameters ...))
+     `(call ,callable (argument-list ,@parameters ,function))]))
+
 (define-visitor simplify
   [($operation $expression)
    #:when (memq operation operation-list)
@@ -132,6 +161,12 @@
    (list 'definition (simplify left-value) (simplify right-value))]
   [(statement @IDENT EQ @right-value)
    (list 'assignment IDENT (simplify right-value))]
+  [(statement @call COLON @expression _)
+   (insert-code-block (simplify call) (simplify expression))]
+  [(statement @call COLON CURLYLEFT @program CURLYRIGHT)
+   (insert-code-block (simplify call) (simplify program))]
+  [(statement @call COLON ROUNDLEFT @parameter-list ROUNDRIGHT CURLYLEFT @program CURLYRIGHT)
+   (insert-code-block (simplify call) (simplify program) (simplify parameter-list))]
   [(left-value @IDENT) IDENT]
   [(left-value @IDENT _ _) (list 'function IDENT)]
   [(left-value @IDENT _ @parameter-list _)
