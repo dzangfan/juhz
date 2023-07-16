@@ -154,6 +154,8 @@
      `(call ,callable (argument-list (,@arguments ,function)))]))
 
 (define-visitor simplify
+  ;; (operation operator operand)
+  ;; (operation operand#0 operator operand#1)
   [($operation $expression)
    #:when (memq operation operation-list)
    (simplify expression)]
@@ -163,15 +165,21 @@
    (list 'operation (simplify operand#0) operator (simplify operand#1))]
   [(operation#6 (_ $operator) $operand)
    (list 'operation operator (simplify operand))]
+  ;; (program (any ...))
   [(program @statement)
    (list 'program (list (simplify statement)))]
   [(program @statement @program)
    (cons-to-2 (simplify statement) (simplify program))]
+  ;; (use expression)
   [(statement USE @expression SEMICOLON)
    (list 'use (simplify expression))]
   [(statement @expression SEMICOLON) (simplify expression)]
+  ;; (definition IDENT any)
+  ;; (definition (function IDENT) any)
+  ;; (definition (function IDENT (parameter-list (IDENT ...))) any)
   [(statement DEF @left-value EQ @right-value)
    (list 'definition (simplify left-value) (simplify right-value))]
+  ;; (assignment IDENT right-value)
   [(statement @IDENT EQ @right-value)
    (list 'assignment IDENT (simplify right-value))]
   [(statement @call COLON @expression _)
@@ -191,31 +199,47 @@
   [(parameter-list @IDENT) (list 'parameter-list (list IDENT))]
   [(parameter-list @IDENT COMMA @parameter-list)
    (cons-to-2 IDENT (simplify parameter-list))]
+  ;; (if condition action)
+  ;; (if condition action#t action#f)
   [(statement IF $condition _ @program _)
    (list 'if (simplify condition) (simplify program))]
   [(statement IF $condition _ $true-case _ _ _ $false-case _)
    (list 'if (simplify condition) (simplify true-case) (simplify false-case))]
+  ;; (while condition action)
   [(statement WHILE $condition _ @program _)
    (list 'while (simplify condition) (simplify program))]
   [(expression $any) (simplify any)]
   [(atom $any) any]
   [(callable $any) (simplify any)]
+  ;; (call any)
+  ;; (call any (argument-list (any ...)))
   [(call @callable _ _) (list 'call (simplify callable))]
   [(call @callable _ @argument-list _)
    (list 'call (simplify callable) (simplify argument-list))]
+  ;; (array)
+  ;; (array (argument-list (any ...)))
   [(array _ _) (list 'array)]
   [(array _ @argument-list _) (repl 'array (simplify argument-list))]
+  ;; (package (any ...))
+  ;; (package (parameter-list) (any ...))
+  ;; (package (parameter-list (IDENT ...)) (any ...))
   [(package _ _ @program _) (repl 'package (simplify program))]
   [(package _ _ _ _ @program _)
    (cons2 (list 'parameter-list) (repl 'package (simplify program)))]
   [(package _ _ @parameter-list _ _ @program _)
    (cons2 (simplify parameter-list) (repl 'package (simplify program)))]
+  ;; (function (any ...))
+  ;; (function (parameter-list) (any ...))
+  ;; (function (parameter-list (IDENT)) (any ...))
   [(function _ _ @program _) (repl 'function (simplify program))]
   [(function _ _ _ _ @program _)
    (cons2 (list 'parameter-list) (repl 'function (simplify program)))]
   [(function _ _ @parameter-list _ _ @program _)
    (cons2 (simplify parameter-list) (repl 'function (simplify program)))]
+  ;; (indexing any any)
   [(indexing @callable _ @expression _) (list 'indexing (simplify callable) (simplify expression))]
+  ;; (selection/package (IDENT ...))
+  ;; (selection (any IDENT ...))
   [(selection (callable @selection) DOT @IDENT)
    (append-to-2 IDENT (simplify selection))]
   [(selection PACKAGE DOT @IDENT)
@@ -267,6 +291,24 @@
                   (juhz-package (hash-set property name object)
                                 using)]))
 
+(define (modify-package package name object)
+  (match-define (struct juhz-package (property using)) package)
+  (cond [(root-package? package) #f]
+        [(hash-has-key? property name)
+         (juhz-object (hash-set property name object) using)]
+        [else (for/first ([parent (in-list using)]
+                          #:do [(define ?modified (modify-package parent name object))]
+                          #:when ?modified)
+                ?modified)]))
+
+(define (using-package package used-package)
+  (match package [(struct juhz-package (property using))
+                  (juhz-package property
+                                (cons used-package using))]))
+
+#;(define (fresh-environment base-package)
+    (using-package (empty-package) base-package))
+
 (define juhz-TRUE (juhz-object 'BOOLEAN true (empty-package)))
 
 (define juhz-FALSE (juhz-object 'BOOLEAN false (empty-package)))
@@ -276,19 +318,69 @@
   (define hook/IDENT (token 'IDENT hook name-location))
   `(call (selection ,object ,hook/IDENT) (argument-list ,@arguments)))
 
-#;(define-visitor (eval-AST environment)
-    [(operation $operand#0 OR $operand#1)
-     (define first-result (eval-AST operand#0))
-     (if (eq? juhz-FALSE first-result)
-         (eval-AST operand#1)
-         first-result)]
-    [(operation $operand#0 AND $operand#1)
-     (define first-result (eval-AST operand#0))
-     (if (eq? juhz-FALSE first-result)
-         juhz-FALSE
-         (eval-AST operand#1))]
-    [(operation $operand#0 $operator $operand#1)
-     (~> (run-hook (token-type operator) (token-location operator) operand#0 operand#1)
-         eval-AST)]
-    [(program)
-     0])
+(struct exn:fail:juhz:runtime (exn:fail)
+  #:transparent
+  #:extra-constructor-name make-exn:fail:juhz:runtime)
+
+(struct exn:fail:juhz:runtime:unbound-identifier (exn:fail:juhz:runtime)
+  #:transparent
+  #:extra-constructor-name make-exn:fail:juhz:runtime:unbound-identifier)
+
+(define (report causal-token string . format-args)
+  (format "Error: ~A, caused by ~A(~A) in file ~A, row ~A, column ~A"
+          (apply format string format-args)
+          (token-text causal-token) (token-type causal-token)
+          (~> causal-token token-location location-file)
+          (~> causal-token token-location location-line)
+          (~> causal-token token-location location-column)))
+
+(define-visitor (eval-AST environment)
+  [(operation $operand#0 OR $operand#1)
+   (define-values [first-result environment+] (eval-AST operand#0 environment))
+   (if (eq? juhz-FALSE first-result)
+       (eval-AST operand#1 environment+)
+       (values first-result environment+))]
+  [(operation $operand#0 AND $operand#1)
+   (define-values [first-result environment+] (eval-AST operand#0 environment))
+   (if (eq? juhz-FALSE first-result)
+       (values juhz-FALSE environment+)
+       (eval-AST operand#1 environment+))]
+  [(operation $operand#0 $operator $operand#1)
+   (~> (run-hook (token-type operator) (token-location operator) operand#0 operand#1)
+       (eval-AST environment))]
+  [(program $steps)
+   (for/fold ([last-value juhz-FALSE] [environment+ environment]) ([step (in-list steps)])
+     (eval-AST step environment+))]
+  [(use $expression)
+   (values juhz-FALSE (using-package environment (juhz-object-package (eval-AST expression environment))))]
+  [(definition @IDENT $any)
+   (values juhz-FALSE (extend-package environment (token-text IDENT) (eval-AST any environment)))]
+  [(definition (function @IDENT) $any)
+   (eval-AST `(definition ,IDENT (function (,any))) environment)]
+  [(definition (function @IDENT @parameter-list) $any)
+   (eval-AST `(definition ,IDENT (function ,parameter-list (,any))) environment)]
+  [(assignment @IDENT $any)
+   (define-values [result environment+] (eval-AST any environment))
+   (define environment++ (modify-package environment+ (token-text IDENT) result))
+   (if environment++
+       (values result environment++)
+       (raise (make-exn:fail:juhz:runtime:unbound-identifier
+               (report IDENT "Cannot assign value to unbound identifier")
+               (current-continuation-marks))))]
+  [(if $condition $true-case)
+   (define-values [condition-object environment+] (eval-AST condition environment))
+   (if (eq? condition-object juhz-FALSE)
+       juhz-FALSE
+       (eval-AST true-case environment+))]
+  [(if $condition $true-case $false-case)
+   (define-values [condition-object environment+] (eval-AST condition environment))
+   (if (eq? condition-object juhz-FALSE)
+       (eval-AST false-case environment+)
+       (eval-AST true-case environment+))]
+  [(while $condition $action)
+   (for/first ([_ (in-naturals)]
+               #:do [(define-values [condition-object environment*] (eval-AST condition environment))
+                     (unless (eq? condition-object juhz-FALSE)
+                       (eval-AST action environment*))]
+               #:when (eq? condition-object juhz-FALSE))
+     (values juhz-FALSE environment))])
