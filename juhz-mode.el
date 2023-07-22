@@ -36,7 +36,7 @@
     (modify-syntax-entry '(?A . ?Z) "w" st)
     (modify-syntax-entry ?_ "w" st)
     (modify-syntax-entry '(?0 . ?9) "w" st)
-    (dolist (punct '(?. ?, ?/ ?+ ?- ?= ?* ?& ?% ?! ?< ?> ?\; ?|))
+    (dolist (punct '(?. ?, ?/ ?+ ?- ?= ?* ?& ?% ?! ?< ?> ?\; ?| ?:))
       (modify-syntax-entry punct "." st))
     (modify-syntax-entry ?\" "\"" st)
     (modify-syntax-entry ?\( "()")
@@ -48,7 +48,7 @@
     st))
 
 (defvar juhz-mode--marker-list
-  '(?\; ?\{ ?\} ?\[ ?\] ?\( ?\) ?=))
+  '(?\; ?\{ ?\} ?\[ ?\] ?\( ?\) ?= ?:))
 
 (defun juhz-mode--previous-marker ()
   (while (and (/= 1 (point)) (not (memq (char-before) juhz-mode--marker-list)))
@@ -99,7 +99,7 @@
     (if (= 1 (point))
 	0
       (cl-case (char-before)
-	((?= ?\{ ?\[ ?\() (+ (current-indentation) 2))
+	((?: ?= ?\{ ?\[ ?\() (+ (current-indentation) 2))
 	((?\) ?\] ?\}) (current-indentation))
 	((?\;) (juhz-mode--determine-sequential-indentation))))))
 
