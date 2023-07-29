@@ -20,7 +20,7 @@
               (if (hash-has-key? direct-mapping name)
                   (hash-ref direct-mapping name)
                   (for/first ([used-package (in-list linked-package-list)]
-                              #:do [(define result (find-in-package used-package))]
+                              #:do [(define result (find-in-package used-package name))]
                               #:when result)
                     result))]))
 
@@ -52,15 +52,30 @@
 
 (struct result (object package/env reserved-data) #:transparent)
 
+(define base-package/NUMBER
+  (box (extend-package root-package)))
+
+(define base-package/STRING
+  (box (extend-package root-package)))
+
+(define base-package/BOOLEAN
+  (box (extend-package root-package)))
+
+(define base-package/ARRAY
+  (box (extend-package root-package)))
+
+(define base-package/FUNCTION
+  (box (extend-package root-package)))
+
 (define (make-object/NUMBER number)
-  (object 'number number (extend-package root-package)))
+  (object 'number number (extend-package (unbox base-package/NUMBER))))
 
 (define (make-object/STRING string)
   (let ([content (substring string 1 (sub1 (string-length string)))])
-    (object 'string content (extend-package root-package))))
+    (object 'string content (extend-package (unbox base-package/STRING)))))
 
 (define (make-object/BOOLEAN true?)
-  (object 'boolean true? (extend-package root-package)))
+  (object 'boolean true? (extend-package (unbox base-package/BOOLEAN))))
 
 (define (object-true? any-object)
   (match any-object
@@ -72,10 +87,10 @@
 
 (define (make-object/FUNCTION argument-name-list body-ast package/env)
   (object 'function (object/function argument-name-list body-ast package/env)
-          (extend-package root-package)))
+          (extend-package (unbox base-package/FUNCTION))))
 
 (define (make-object/ARRAY vector)
-  (object 'array vector (extend-package root-package)))
+  (object 'array vector (extend-package (unbox base-package/ARRAY))))
 
 (define object/NOT-PROVIDED
   (object 'not-provided #f (extend-package root-package)))
@@ -96,6 +111,11 @@
 
 (define report/unbound-variable (report make-exn:fail:juhz:unbound-variable))
 
+(struct exn:fail:juhz:illegal-operation exn:fail:juhz () #:transparent
+  #:extra-constructor-name make-exn:fail:juhz:illegal-operation)
+
+(define report/illegal-operation (report make-exn:fail:juhz:illegal-operation))
+
 (define ast%
   (class object%
     (init-field [parse-tree #f])
@@ -105,7 +125,7 @@
 (define constant%
   (class ast%
     (init-field constant-token)
-    (super-new (parse-tree constant-token))
+    (super-new)
     (field [value
             (match constant-token
               [(struct token ('NUMBER text _))
@@ -122,8 +142,8 @@
 
 (define condition%
   (class ast%
-    (init-field cond-ast true-case-ast false-case-ast parse-tree)
-    (super-new (parse-tree parse-tree))
+    (init-field cond-ast true-case-ast false-case-ast)
+    (super-new)
     (define/override (evaluate package/env)
       (define cond-object (~> (send cond-ast evaluate package/env) result-object))
       (cond [(and (object-true? cond-object) (eq? true-case-ast 'same-as-condition)) (result cond-object package/env #f)]
@@ -132,8 +152,8 @@
 
 (define loop%
   (class ast%
-    (init-field cond-ast body-ast parse-tree)
-    (super-new (parse-tree parse-tree))
+    (init-field cond-ast body-ast)
+    (super-new)
     (define/override (evaluate package/env)
       (let ([last-value (make-object/BOOLEAN false)])
         (let continue ([cond-object (~> (send cond-ast evaluate package/env) result-object)])
@@ -143,8 +163,8 @@
 
 (define package%
   (class ast%
-    (init-field public-name-list body-ast/collector-program parse-tree)
-    (super-new (parse-tree parse-tree))
+    (init-field public-name-list body-ast/collector-program)
+    (super-new)
     (define/override (evaluate package/env)
       (define package
         (~> (send body-ast/collector-program evaluate (extend-package package/env))
@@ -155,31 +175,31 @@
                             ([name (in-list public-name-list)])
                     (define value (find-in-package package))
                     (if (not value)
-                        (report/unbound-variable parse-tree "Cannot export unbound symbol ~A from package" name)
+                        (report/unbound-variable (get-field parse-tree this) "Cannot export unbound symbol ~A from package" name)
                         (define-in-package package/interface name value)))]))))
 
 (define function%
   (class ast%
-    (init-field argument-name-list body-ast/basic-program parse-tree)
-    (super-new (parse-tree parse-tree))
+    (init-field argument-name-list body-ast/basic-program)
+    (super-new)
     (define/override (evaluate package/env)
       (result (make-object/FUNCTION argument-name-list body-ast/basic-program package/env)
               package/env #f))))
 
 (define array%
   (class ast%
-    (init-field ast-list parse-tree)
-    (super-new (parse-tree parse-tree))
+    (init-field ast-list)
+    (super-new)
     (define/override (evaluate package/env)
       (define array (~>> ast-list
                          (map (lambda~> (send evaluate package/env) result-object))
                          list->vector))
       (result (make-object/ARRAY array) package/env #f))))
 
-(define indentifier%
+(define identifier%
   (class ast%
-    (init-field name token)
-    (super-new (parse-tree token))
+    (init-field name)
+    (super-new)
     (define/override (evaluate package/env)
       (define object (find-in-package package/env name))
       (if object
@@ -188,8 +208,8 @@
 
 (define program%
   (class ast%
-    (init-field statement-ast-list parse-tree)
-    (super-new (parse-tree parse-tree))
+    (init-field statement-ast-list)
+    (super-new)
     (define/override (evaluate package/env)
       (for/fold ([last-value (make-object/BOOLEAN #f)]
                  [package/env* package/env]
@@ -201,8 +221,8 @@
 
 (define collector-program%
   (class ast%
-    (init-field statement-ast-list parse-tree)
-    (super-new (parse-tree parse-tree))
+    (init-field statement-ast-list)
+    (super-new)
     (define/override (evaluate package/env)
       (match-define (struct package (direct-mapping linked-package-list))
         (for/fold ([package/env* (extend-package package/env)]
@@ -215,24 +235,39 @@
 
 (define use%
   (class ast%
-    (init-field expression-ast parse-tree)
-    (super-new (parse-tree parse-tree))
+    (init-field expression-ast)
+    (super-new)
     (define/override (evaluate package/env)
       (define used-package (~> expression-ast (send evaluate package/env) result-object object-package))
       (result (make-object/BOOLEAN #f) (using-package package/env used-package) #f))))
 
 (define definition%
   (class ast%
-    (init-field name value-ast parse-tree)
-    (super-new (parse-tree parse-tree))
+    (init-field name value-ast)
+    (super-new)
     (define/override (evaluate package/env)
       (define value-object (~> value-ast (send evaluate package/env) result-object))
       (result (make-object/BOOLEAN #f) (define-in-package package/env name value-object) #f))))
 
+(define function-definition%
+  (class ast%
+    (init-field name argument-name-list body-ast/basic-program)
+    (super-new)
+    (define/override (evaluate package/env)
+      (define function-ast
+        (new function%
+             (argument-name-list argument-name-list)
+             (body-ast/basic-program body-ast/basic-program)))
+      (define declarative-package/env
+        (define-in-package package/env name (make-object/BOOLEAN #f)))
+      (define function-object (~> function-ast (send evaluate package/env) result-object))
+      (modify-in-package declarative-package/env name function-object)
+      (result (make-object/BOOLEAN #f) declarative-package/env #f))))
+
 (define assignment%
   (class ast%
-    (init-field name value-ast parse-tree)
-    (super-new (parse-tree parse-tree))
+    (init-field name value-ast)
+    (super-new)
     (define/override (evaluate package/env)
       (define value-object (~> value-ast (send evaluate package/env) result-object))
       (define package/env+
@@ -255,8 +290,8 @@
 
 (define call%
   (class ast%
-    (init-field caller-ast argument-ast-list suffix-ast suffix-type parse-tree)
-    (super-new (parse-tree parse-tree))
+    (init-field caller-ast argument-ast-list suffix-ast suffix-type)
+    (super-new)
     (define/override (evaluate package/env)
       (define caller-object (~> caller-ast (send evaluate package/env) result-object))
       (cond [(procedure? caller-object)
@@ -289,14 +324,14 @@
 
 (define selection%
   (class ast%
-    (init-field target-ast property-name parse-tree)
-    (super-new (parse-tree parse-tree))
+    (init-field target-ast property-name)
+    (super-new)
     (define/override (evaluate package/env)
       (define target-package (~> target-ast (send evaluate package/env) result-object object-package))
       (define property-object (find-in-package target-package property-name))
       (if property-object
           (result property-object package/env #f)
-          (report/unbound-variable parse-tree "Cannot found property ~A in the package" property-name)))))
+          (report/unbound-variable (get-field parse-tree this) "Cannot found property ~A in the package" property-name)))))
 
 (define library-package (make-object/PACKAGE (extend-package root-package)))
 
@@ -316,12 +351,12 @@
 
 (define package-selection%
   (class ast%
-    (init-field name parse-tree)
-    (super-new (parse-tree parse-tree))
+    (init-field name)
+    (super-new)
     (define/override (evaluate package/env)
       (define object (~> library-package object-package (find-in-package name)))
       (if object
           (result object package/env #f)
-          (report/unbound-variable parse-tree "Package ~A has not been defined yet" name)))))
+          (report/unbound-variable (get-field parse-tree this) "Package ~A has not been defined yet" name)))))
 
 (provide (all-defined-out))
