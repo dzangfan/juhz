@@ -1,9 +1,6 @@
 #lang racket
 
 (require basic-cc/language)
-(require basic-cc/visitor)
-(require basic-cc/tokenization)
-(require threading)
 
 (define-language juhz
   "\\s+"
@@ -22,20 +19,20 @@
   (FUNCTION "function") (DEF "def") (USE "use")
   (program statement (statement program))
   (statement right-value
-             (USE expression SEMICOLON)
+             (USE right-value)
              (DEF left-value EQ right-value)
              (IDENT EQ right-value)
-             (IF expression CURLYLEFT program CURLYRIGHT ELSE CURLYLEFT program CURLYRIGHT)
-             (WHILE expression CURLYLEFT program CURLYRIGHT)
              (call COLON right-value))
   (left-value IDENT (IDENT ROUNDLEFT ROUNDRIGHT) (IDENT ROUNDLEFT parameter-list ROUNDRIGHT))
   (right-value (expression SEMICOLON)
                (CURLYLEFT program CURLYRIGHT)
                package
-               function)
+               function
+               condition
+               loop)
   (parameter-list IDENT (IDENT COMMA parameter-list))
-  (expression package function operation)
-  (atom NUMBER STRING TRUE FALSE array)
+  (expression package function operation condition loop)
+  (atom NUMBER STRING TRUE FALSE array (ROUNDLEFT expression ROUNDRIGHT))
   (callable IDENT call indexing selection)
   (call (callable ROUNDLEFT ROUNDRIGHT) (callable ROUNDLEFT argument-list ROUNDRIGHT))
   (array (SQUARELEFT SQUARERIGHT) (SQUARELEFT argument-list SQUARERIGHT))
@@ -45,6 +42,8 @@
   (function (FUNCTION CURLYLEFT program CURLYRIGHT)
             (FUNCTION ROUNDLEFT ROUNDRIGHT CURLYLEFT program CURLYRIGHT)
             (FUNCTION ROUNDLEFT parameter-list ROUNDRIGHT CURLYLEFT program CURLYRIGHT))
+  (condition (IF expression CURLYLEFT program CURLYRIGHT ELSE CURLYLEFT program CURLYRIGHT))
+  (loop (WHILE expression CURLYLEFT program CURLYRIGHT))
   (indexing (callable SQUARELEFT expression SQUARERIGHT))
   (selection (callable DOT IDENT)
              (PACKAGE DOT IDENT))
@@ -64,3 +63,5 @@
   (operator#5 TIMES DIVIDE REM)
   (operation#6 atom callable (operator#6 operation#6))
   (operator#6 BANG PLUS MINUS))
+
+(provide juhz-read)
