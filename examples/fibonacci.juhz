@@ -9,3 +9,13 @@ def fib(n) = {
   }
   b;
 }
+
+def i = 0;
+def fibNumbers = [];
+
+while i < 30 {
+  push(fib(i), fibNumbers);
+  i = i + 1;
+}
+
+fibNumbers;

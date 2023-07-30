@@ -91,10 +91,16 @@
 (define object/NOT-PROVIDED
   (object 'not-provided #f (extend-package root-package)))
 
+(define object/UNDEFINED
+  (object 'undefined #f (extend-package root-package)))
+
 (define library-package-table (make-hash))
 
 (define (library-package-set! package-name package-object)
   (hash-set! library-package-table package-name package-object))
+
+(define (library-package-ref package-name)
+  (hash-ref library-package-table package-name))
 
 (define ((report constructor) causal-parse-tree format-string . format-args)
   (raise (constructor (apply format format-string format-args)
@@ -158,9 +164,10 @@
     (define/override (evaluate package/env)
       (let ([last-value (make-object/BOOLEAN false)])
         (let continue ([cond-object (~> (send cond-ast evaluate package/env) result-object)])
-          (if (object-true? cond-object)
-              (set! last-value (send body-ast evaluate (extend-package package/env)))
-              last-value))))))
+          (cond [(object-true? cond-object)
+                 (set! last-value (send body-ast evaluate (extend-package package/env)))
+                 (continue (~> (send cond-ast evaluate package/env) result-object))]
+                [else (result last-value package/env #f)]))))))
 
 (define package%
   (class ast%
@@ -262,7 +269,7 @@
              (body-ast/basic-program body-ast/basic-program)))
       (define declarative-package/env
         (define-in-package package/env name (make-object/BOOLEAN #f)))
-      (define function-object (~> function-ast (send evaluate package/env) result-object))
+      (define function-object (~> function-ast (send evaluate declarative-package/env) result-object))
       (modify-in-package! declarative-package/env name function-object)
       (result (make-object/BOOLEAN #f) declarative-package/env #f))))
 
@@ -315,8 +322,8 @@
     function)
   (for/fold ([middle-package/env package/env])
             ([name (in-list argument-name-list)]
-             [object (stream-append (in-list argument-object-list)
-                                    (in-cycle (stream object/NOT-PROVIDED)))])
+             [object (sequence-append (in-list argument-object-list)
+                                      (in-cycle (stream object/NOT-PROVIDED)))])
     (define-in-package middle-package/env name object)))
 
 (define call%
@@ -335,7 +342,7 @@
                (define body-ast (~> caller-object object-value object/function-body-ast))
                (define argument-bound-package/env
                  (bind-argument caller-object argument-object-list))
-               (result (send body-ast evaluate (middle-package-modifier argument-bound-package/env))
+               (result (result-object (send body-ast evaluate (middle-package-modifier argument-bound-package/env)))
                        package/env #f))
              (match suffix-type
                [#f (apply argument-ast-list identity)]

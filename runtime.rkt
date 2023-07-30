@@ -1,12 +1,12 @@
 #lang racket
 
-(require threading)
+(require threading (for-syntax threading))
 (require "compiler.rkt")
 (require "interpreter.rkt")
 
-(define (juhz-eval in #:file [file "(string)"])
+(define (juhz-eval in [package/env (extend-package root-package)] #:file [file "(string)"])
   (define program (juhz-compile in #:file file))
-  (send program evaluate (extend-package root-package)))
+  (send program evaluate package/env))
 
 (define (juhz-load in #:file [file "(string)"])
   (define program (juhz-compile in #:file file))
@@ -22,6 +22,8 @@
   (~> (send package evaluate (extend-package root-package))
       result-object))
 
+(provide juhz-eval juhz-load)
+
 (struct exn:fail:juhz:runtime-error exn:fail:juhz () #:transparent
   #:extra-constructor-name make-exn:fail:juhz:runtime-error)
 
@@ -30,6 +32,9 @@
    (make-exn:fail:juhz:runtime-error
     (apply format format-string format-args)
     (current-continuation-marks))))
+
+(provide (struct-out exn:fail:juhz:runtime-error)
+         report/runtime-error)
 
 (define (make-standard-internal-function number-of-argument procedure)
   (lambda (argument-ast-list suffix-ast suffix-type package/env)
@@ -80,12 +85,40 @@
 (define-syntax-rule (type-case operation-name (object ...) clauses ...)
   (type-case-helper operation-name (object ...) #:collect () #:clause (clauses ...)))
 
-(define-base-function base-package/NUMBER "__PLUS__" (left-number right-number)
-  (type-case "number.__PLUS__"
-             (left-number right-number)
-             [(number number)
-              (make-object/NUMBER (+ (object-value left-number) (object-value right-number)))]
-             [(number not-provided)
-              (make-object/NUMBER (object-value left-number))]))
+(provide define-base-function type-case)
 
-(provide juhz-eval juhz-load)
+(define (assocs->package assocs)
+  (for/fold ([package (extend-package root-package)]
+             #:result (make-object/PACKAGE package))
+            ([name+object (in-list assocs)])
+    (define-in-package package (car name+object) (cdr name+object))))
+
+(provide assocs->package)
+
+(define-syntax (define-library-package-helper stx)
+  (syntax-case stx (def use)
+    [(_ add! _ (def name expr))
+     (identifier? #'name)
+     (with-syntax ([name-string (~> #'name syntax->datum symbol->string (datum->syntax #'stx _ #'stx))])
+       #'(add! name-string expr))]
+    [(_ add! _ (def (name args ...) expr))
+     (identifier? #'name)
+     (with-syntax ([name-string (~> #'name syntax->datum symbol->string (datum->syntax #'stx _ #'stx))])
+       #'(add! name-string
+               (make-standard-internal-function (length '(args ...))
+                                                (lambda (args ...) expr))))]
+    [(_ _ use! (use expr))
+     #'(use! expr)]
+    [(_ _ _ expr) #'expr]))
+
+(define-syntax (define-library-package stx)
+  (syntax-case stx ()
+    [(_ name clauses ...)
+     (with-syntax ([name-string (~> #'name syntax->datum symbol->string (datum->syntax #'stx _ #'stx))])
+       #'(let ([package (extend-package root-package)])
+           (define (add! name value) (set! package (define-in-package package name value)))
+           (define (use! expr) (set! package (using-package package expr)))
+           (define-library-package-helper add! use! clauses) ...
+           (library-package-set! name-string package)))]))
+
+(provide define-library-package)

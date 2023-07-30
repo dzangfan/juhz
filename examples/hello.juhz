@@ -1,4 +1,0 @@
-use package.stdio;
-use package.runtime;
-
-printf("Hello, ~A!\n", argv[1]);

@@ -13,13 +13,16 @@ def isPrime(number) = {
   check(2);
 }
 
-def counter = 0;
+def primeNumbers = [];
 def candidate = 2;
 
-while counter < 100 {
+while length(primeNumbers) < 100 {
   if isPrime(candidate) {
-    println(candidate);
-    counter = counter + 1;
+    push(candidate, primeNumbers);
+  } else {
+    false;
   }
   candidate = candidate + 1;
 }
+
+primeNumbers;

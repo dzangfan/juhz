@@ -106,7 +106,7 @@
   [(statement DEF (left-value @IDENT ROUNDLEFT @parameter-list ROUNDRIGHT) EQ @right-value)
    (new function-definition%
         (name (token-text IDENT))
-        (argument-name-list (~> parameter-list flatten (map token-text)))
+        (argument-name-list (~>> parameter-list flatten (map token-text)))
         (body-ast/basic-program (compile/parse-tree right-value))
         (parse-tree *parse-tree*))]
   [(statement DEF (left-value PACKAGE DOT @IDENT) EQ @right-value)
@@ -223,7 +223,7 @@
   [(package PACKAGE ROUNDLEFT @parameter-list ROUNDRIGHT CURLYLEFT @program CURLYRIGHT)
    (define program-ast (compile/parse-tree program))
    (new package%
-        (public-name-list (~> parameter-list flatten (map token-text)))
+        (public-name-list (~>> parameter-list flatten (map token-text)))
         (body-ast/collector-program
          (new collector-program%
               (statement-ast-list (get-field statement-ast-list program-ast))
@@ -241,7 +241,7 @@
         (parse-tree *parse-tree*))]
   [(function FUNCTION ROUNDLEFT @parameter-list ROUNDRIGHT CURLYLEFT @program CURLYRIGHT)
    (new function%
-        (argument-name-list (~> parameter-list flatten (map token-text)))
+        (argument-name-list (~>> parameter-list flatten (map token-text)))
         (body-ast/basic-program (compile/parse-tree program))
         (parse-tree *parse-tree*))]
   [(condition IF $condition CURLYLEFT $true-case CURLYRIGHT ELSE CURLYLEFT $false-case CURLYRIGHT)
@@ -270,7 +270,7 @@
      [(list operator operand)
       (define operand-ast (compile/parse-tree operand))
       (construct-hook-invocation (format "__~A__" (token-type operator))
-                                 operand-ast operator *parse-tree*)]
+                                 operand-ast (list) operator *parse-tree*)]
      [(list left-operand (struct token ('AND _ _)) right-operand)
       (new condition%
            (cond-ast (compile/parse-tree left-operand))
