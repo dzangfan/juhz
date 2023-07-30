@@ -6,8 +6,7 @@
 
 (define (juhz-eval in #:file [file "(string)"])
   (define program (juhz-compile in #:file file))
-  (~> (send program evaluate (extend-package root-package))
-      result-object))
+  (send program evaluate (extend-package root-package)))
 
 (define (juhz-load in #:file [file "(string)"])
   (define program (juhz-compile in #:file file))

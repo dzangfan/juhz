@@ -8,7 +8,7 @@
 (define root-package (package #hash() null))
 
 (define (extend-package parent-package)
-  (package #hash() (list parent-package)))
+  (package (make-hash) (list parent-package)))
 
 (define (using-package current-package used-package)
   (match-define (struct package (direct-mapping linked-package-list)) current-package)
@@ -24,31 +24,27 @@
                               #:when result)
                     result))]))
 
-(define (modify-in-package current-package name value)
+(define (modify-in-package! current-package name value)
   (cond [(eq? current-package root-package) #f]
         [else (match-define (struct package (direct-mapping linked-package-list)) current-package)
               (if (hash-has-key? direct-mapping name)
-                  (package (hash-set direct-mapping name value) linked-package-list)
-                  (let try-in-linked-packages ([rest-packages linked-package-list] [tried-packages/rev null])
+                  (begin (hash-set! direct-mapping name value) #t)
+                  (let try-in-linked-packages ([rest-packages linked-package-list])
                     (match rest-packages
                       [(list) #f]
                       [(list used-package rest-packages+ ...)
-                       (define used-package/modified (modify-in-package used-package name value))
-                       (if used-package/modified
-                           (package direct-mapping
-                                    (for/fold ([linked-package-list+ (cons used-package/modified rest-packages+)])
-                                              ([tried-package (in-list tried-packages/rev)])
-                                      (cons tried-package linked-package-list+)))
-                           (try-in-linked-packages rest-packages+ (cons used-package tried-packages/rev)))])))]))
+                       (or (modify-in-package! used-package name value)
+                           (try-in-linked-packages rest-packages+))])))]))
 
 (define (define-in-package current-package name value)
   (match-define (struct package (direct-mapping linked-package-list)) current-package)
-  (package (hash-set direct-mapping name value)
-           linked-package-list))
+  (define direct-mapping* (hash-copy direct-mapping))
+  (hash-set! direct-mapping* name value)
+  (package direct-mapping* linked-package-list))
 
 (struct object/function (argument-name-list body-ast package/env) #:transparent)
 
-(struct object (type value package) #:transparent)
+(struct object (type value package) #:transparent #:mutable)
 
 (struct result (object package/env reserved-data) #:transparent)
 
@@ -235,7 +231,8 @@
                   ([statement-ast (in-list statement-ast-list)])
           (~> statement-ast (send evaluate package/env*) result-package/env)))
       (define linked-package-list/new
-        (take linked-package-list (- (length linked-package-list) (length package/env))))
+        (take linked-package-list (- (length linked-package-list)
+                                     (length (package-linked-package-list package/env)))))
       (result #f package/env (package direct-mapping linked-package-list/new)))))
 
 (define use%
@@ -266,7 +263,7 @@
       (define declarative-package/env
         (define-in-package package/env name (make-object/BOOLEAN #f)))
       (define function-object (~> function-ast (send evaluate package/env) result-object))
-      (modify-in-package declarative-package/env name function-object)
+      (modify-in-package! declarative-package/env name function-object)
       (result (make-object/BOOLEAN #f) declarative-package/env #f))))
 
 (define package-definition%
@@ -284,9 +281,30 @@
     (define/override (evaluate package/env)
       (define value-object (~> value-ast (send evaluate package/env) result-object))
       (define package/env+
-        (or (modify-in-package package/env name value-object)
+        (or (and (modify-in-package! package/env name value-object)
+                 package/env)
             (define-in-package package/env name value-object)))
       (result (make-object/BOOLEAN #f) package/env+ #f))))
+
+(define selection-assignment%
+  (class ast%
+    (init-field prefix-ast name value-ast)
+    (super-new)
+    (define/override (evaluate package/env)
+      (define value-object (~> value-ast (send evaluate package/env) result-object))
+      (define prefix-object (~> prefix-ast (send evaluate package/env) result-object))
+      (or (modify-in-package! (object-package prefix-object) name value-object)
+          (set-object-package! prefix-object
+                               (define-in-package (object-package prefix-object) name value-object)))
+      (result (make-object/BOOLEAN #f) package/env #f))))
+
+(define package-assignment%
+  (class ast%
+    (init-field name value-ast)
+    (super-new)
+    (define/override (evaluate package/env)
+      (library-package-set! name (~> (send value-ast evaluate package/env) result-object))
+      (result (make-object/BOOLEAN #f) package/env #f))))
 
 (define (bind-argument function argument-object-list)
   (match-define
