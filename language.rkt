@@ -26,7 +26,8 @@
   (left-value IDENT
               (IDENT ROUNDLEFT ROUNDRIGHT)
               (IDENT ROUNDLEFT parameter-list ROUNDRIGHT)
-              (PACKAGE DOT IDENT))
+              (PACKAGE DOT IDENT)
+              (IDENT DOT IDENT))
   (right-value (expression SEMICOLON)
                (CURLYLEFT program CURLYRIGHT)
                package

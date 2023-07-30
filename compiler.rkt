@@ -40,6 +40,11 @@
            (suffix-ast #f) (suffix-type #f)
            (parse-tree whole-parse-tree)))))
 
+(define (token/IDENT->token/STRING ident)
+  (token 'STRING
+         (format "\"~A\"" (token-text ident))
+         (token-location ident)))
+
 (define operation-tag-list0~5
   '(operation operation#0 operation#1 operation#2
               operation#3 operation#4 operation#5))
@@ -108,6 +113,18 @@
    (new package-definition%
         (name (token-text IDENT))
         (value-ast (compile/parse-tree right-value))
+        (parse-tree *parse-tree*))]
+  [(statement DEF (left-value @IDENT DOT $name) @EQ @right-value)
+   (define definition-invocation
+     (construct-hook-invocation "__DEFINE__"
+                                (new identifier% (name (token-text IDENT)) (parse-tree IDENT))
+                                (list (new constant%
+                                           (constant-token (token/IDENT->token/STRING name))
+                                           (parse-tree name))
+                                      (compile/parse-tree right-value))
+                                EQ *parse-tree*))
+   (new use%
+        (expression-ast definition-invocation)
         (parse-tree *parse-tree*))]
   [(statement (callable @IDENT) EQ @right-value)
    (new assignment%
