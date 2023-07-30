@@ -82,6 +82,11 @@
         (argument-name-list (~> parameter-list flatten (map token-text)))
         (body-ast/basic-program (compile/parse-tree right-value))
         (parse-tree *parse-tree*))]
+  [(statement DEF (left-value PACKAGE DOT @IDENT) EQ @right-value)
+   (new package-definition%
+        (name (token-text IDENT))
+        (value-ast (compile/parse-tree right-value))
+        (parse-tree *parse-tree*))]
   [(statement @IDENT EQ @right-value)
    (new assignment%
         (name (token-text IDENT))

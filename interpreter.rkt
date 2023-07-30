@@ -95,6 +95,11 @@
 (define object/NOT-PROVIDED
   (object 'not-provided #f (extend-package root-package)))
 
+(define library-package-table (make-hash))
+
+(define (library-package-set! package-name package-object)
+  (hash-set! library-package-table package-name package-object))
+
 (define ((report constructor) causal-parse-tree format-string . format-args)
   (raise (constructor (apply format format-string format-args)
                       (current-continuation-marks))))
@@ -264,6 +269,14 @@
       (modify-in-package declarative-package/env name function-object)
       (result (make-object/BOOLEAN #f) declarative-package/env #f))))
 
+(define package-definition%
+  (class ast%
+    (init-field name value-ast)
+    (super-new)
+    (define/override (evaluate package/env)
+      (library-package-set! name (~> (send value-ast evaluate package/env) result-object))
+      (result (make-object/BOOLEAN #f) package/env #f))))
+
 (define assignment%
   (class ast%
     (init-field name value-ast)
@@ -333,28 +346,12 @@
           (result property-object package/env #f)
           (report/unbound-variable (get-field parse-tree this) "Cannot found property ~A in the package" property-name)))))
 
-(define library-package (make-object/PACKAGE (extend-package root-package)))
-
-(define (update-package name-list result-object)
-  (set! library-package
-        (let update ([rest-name-list name-list] [package-object library-package])
-          (match-define (struct object ('package #f package)) package-object)
-          (match rest-name-list
-            [(list name) (make-object/PACKAGE (define-in-package package name result-object))]
-            [(list name rest-name-list+ ...)
-             (define next-package-object (find-in-package package))
-             (make-object/PACKAGE
-              (define-in-package package name
-                (update rest-name-list+
-                        (or next-package-object
-                            (make-object/PACKAGE (extend-package root-package))))))]))))
-
 (define package-selection%
   (class ast%
     (init-field name)
     (super-new)
     (define/override (evaluate package/env)
-      (define object (~> library-package object-package (find-in-package name)))
+      (define object (hash-ref library-package-table name #f))
       (if object
           (result object package/env #f)
           (report/unbound-variable (get-field parse-tree this) "Package ~A has not been defined yet" name)))))

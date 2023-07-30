@@ -23,7 +23,10 @@
              (DEF left-value EQ right-value)
              (IDENT EQ right-value)
              (call COLON right-value))
-  (left-value IDENT (IDENT ROUNDLEFT ROUNDRIGHT) (IDENT ROUNDLEFT parameter-list ROUNDRIGHT))
+  (left-value IDENT
+              (IDENT ROUNDLEFT ROUNDRIGHT)
+              (IDENT ROUNDLEFT parameter-list ROUNDRIGHT)
+              (PACKAGE DOT IDENT))
   (right-value (expression SEMICOLON)
                (CURLYLEFT program CURLYRIGHT)
                package
