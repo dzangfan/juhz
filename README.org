@@ -1,0 +1,33 @@
+o* Juhz -- Toyish yet flexible programming language
+oo
+** Operators
+
+Every unary and binary operator corresponds to a hook function, meaning that such operations will be interpreted as a method invocation. Logical operation ~&&~ (and) and ~||~ (or) are exceptions since their operands must be evaluated lazily. In summary, except ~&&~ and ~||~, every operator is implemented by method defined in package, and those two exceptions cannot be customized. The following table lists all operators, as well as their priorities and hooks.
+
+| priority | name         | operator       | example          | hook                 |
+|----------+--------------+----------------+------------------+----------------------|
+|        1 | logical or   | ~\vert\vert{}~ | ~a \vert\vert b~ | none                 |
+|        2 | logical and  | ~&&~           | ~a && b~         | none                 |
+|        3 | equality     | ~==~           | ~a == b~         | ~a.__SAME__(a, b)~   |
+|        3 | difference   | ~!=~           | ~a != b~         | ~a.__DIFF__(a, b)~   |
+|        4 | less than    | ~<~            | ~a < b~          | ~a.__LT__(a, b)~     |
+|        4 | greater than | ~>~            | ~a > b~          | ~a.__GT__(a, b)~     |
+|        4 | less equal   | ~<=~           | ~a <= b~         | ~a.__LE__(a, b)~     |
+|        4 | greater than | ~>=~           | ~a >= b~         | ~a.__GE__(a, b)~     |
+|        5 | add          | ~+~            | ~a + b~          | ~a.__PLUS__(a, b)~   |
+|        5 | subtract     | ~-~            | ~a - b~          | ~a.__MINUS__(a, b)~  |
+|        6 | multiply     | ~*~            | ~a * b~          | ~a.__TIMES__(a, b)~  |
+|        6 | divide       | ~/~            | ~a / b~          | ~a.__DIVIDE__(a, b)~ |
+|        6 | remainder    | ~%~            | ~a % b~          | ~a.__REM__(a, b)~    |
+|        7 | logical not  | ~!~            | ~!a~             | ~a.__BANG__(a)~      |
+|        7 | positive     | ~+~            | ~+a~             | ~a.__PLUS__(a)~      |
+|        7 | negative     | ~-~            | ~-a~             | ~a.__MINUS__(a)~     |
+
+Besides, three types of operation related to subscript and definition are also implemented by hooks. The corresponding relationships are as follows.
+
+| example                | hook                                  | common meaning                 |
+|------------------------+---------------------------------------+--------------------------------|
+| ~foo[i]~               | ~foo.__INDEX__(foo, i)~               | Find the i-th element of foo   |
+| ~foo[i] = j~           | ~foo.__INDEX__(foo, i, j)~            | Modify the i-th element of foo |
+| ~def class.foo = bar;~ | ~class.__DEFINE__(class, "foo", bar)~ | Define something called "foo"  |
+
