@@ -66,9 +66,17 @@
 (define (make-object/NUMBER number)
   (object 'number number (extend-package (unbox base-package/NUMBER))))
 
+(define (encode-string string)
+  (let build ([rest-chars (string->list string)] [collected-chars null])
+    (match rest-chars
+      [(list) (~> collected-chars reverse list->string)]
+      [(list #\\ #\n rest-chars ...) (build rest-chars (cons #\newline collected-chars))]
+      [(list #\\ char rest-chars ...) (build rest-chars (cons char collected-chars))]
+      [(list char rest-chars ...) (build rest-chars (cons char collected-chars))])))
+
 (define (make-object/STRING string)
   (let ([content (substring string 1 (sub1 (string-length string)))])
-    (object 'string content (extend-package (unbox base-package/STRING)))))
+    (object 'string (encode-string content) (extend-package (unbox base-package/STRING)))))
 
 (define (make-object/BOOLEAN true?)
   (object 'boolean true? (extend-package (unbox base-package/BOOLEAN))))
