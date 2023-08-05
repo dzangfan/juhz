@@ -1,4 +1,4 @@
 use package.builtin;
 
 def package.utils = source("utils.juhz");
-def package.array = source("array.juhz");
+def package.array = source("array/array.juhz");

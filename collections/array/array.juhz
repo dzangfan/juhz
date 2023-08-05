@@ -1,5 +1,9 @@
 use package.builtin;
+
+load("array.rkt");
+
 use package.utils;
+use package.array_;
 
 def makeArray(size) = such([]): ~(array) {
   length(array) = size;
