@@ -5,7 +5,8 @@
 
 (define deps
   '("base"
-    "threading"))
+    "threading"
+    "git://github.com/dzangfan/basic-cc"))
 
 (define racket-launcher-names
   '("juhz-run"))
