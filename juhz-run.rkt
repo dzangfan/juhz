@@ -3,8 +3,12 @@
 
 (require racket/cmdline)
 
+(define run-stdin? (make-parameter #f))
+
 (define (get-source-files [argv (current-command-line-arguments)])
   (command-line #:program "juhz-run" #:argv argv
+                #:once-each (("-i" "--stdin") "Evaluate code in STDIN after runing sources from arguments"
+                                              (run-stdin? #t))
                 #:usage-help "Run source files specified by arguments sequentially."
                 #:args source-files
                 source-files))
@@ -24,4 +28,7 @@
   (define source-files (get-source-files))
 
   (for ([file (in-list source-files)])
-    (juhz-eval (open-input-file file) (extend-package root-package))))
+    (juhz-eval (open-input-file file) (extend-package root-package)))
+
+  (when (run-stdin?)
+    (void (juhz-eval (current-input-port) (extend-package root-package)))))

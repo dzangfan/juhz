@@ -7,7 +7,7 @@
 (define (take n lst)
   (let take* ([n n] [lst lst] [rez null])
     (if (or (zero? n) (null? lst))
-        (values rez (null? lst))
+        (values (reverse rez) (null? lst))
         (take* (sub1 n) (rest lst) (cons (first lst) rez)))))
 
 (define (limitied-list n lst)
