@@ -1,4 +1,7 @@
 ;; List the first 100 prime numbers
+
+use package.array;
+
 def isPrime(number) = {
   def check(i) = {
     if i >= number {

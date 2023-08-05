@@ -1,4 +1,7 @@
 ;; List the first 30 fibonacci numbers
+
+use package.array;
+
 def fib(n) = {
   def a = 0;
   def b = 1;

@@ -119,6 +119,6 @@
            (define (add! name value) (set! package (define-in-package package name value)))
            (define (use! expr) (set! package (using-package package expr)))
            (define-library-package-helper add! use! clauses) ...
-           (library-package-set! name-string package)))]))
+           (library-package-set! name-string (make-object/PACKAGE package))))]))
 
 (provide define-library-package)

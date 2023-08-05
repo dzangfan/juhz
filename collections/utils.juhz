@@ -1,0 +1,5 @@
+
+def such(object, modifier) = {
+  modifier(object);
+  object;
+}

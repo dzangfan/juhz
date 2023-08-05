@@ -1,0 +1,12 @@
+use package.builtin;
+use package.utils;
+
+def makeArray(size) = such([]): ~(array) {
+  length(array) = size;
+}
+
+def push(elt, array) = such(array): ~(it) {
+  def lastIdx = length(it);
+  length(it) = lastIdx + 1;
+  it[lastIdx] = elt;
+}

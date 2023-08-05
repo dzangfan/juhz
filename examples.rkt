@@ -8,7 +8,9 @@
   (require "base-operations.rkt")
   (require "builtin.rkt")
   (define (eval string)
-    (juhz-eval string (extend-package (library-package-ref "builtin"))))
+    (define base-package (extend-package root-package))
+    (source (build-path (current-directory) "collections" ".all.juhz"))
+    (juhz-eval string base-package))
   (define (racketify any)
     (match any
       [(struct object (type value _))
