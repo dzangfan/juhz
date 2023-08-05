@@ -1,0 +1,3 @@
+use package.stdio;
+
+println("Hello world!");

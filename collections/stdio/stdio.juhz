@@ -1,0 +1,13 @@
+use package.builtin;
+
+load("stdio.rkt");
+
+def _printString = package.stdio_.print;
+def flush = package.stdio_.flush;
+
+def println(string) = {
+  _printString(string);
+  _printString("\n");
+  flush();
+  false;
+}
