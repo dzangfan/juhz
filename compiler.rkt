@@ -154,7 +154,7 @@
    (construct-hook-invocation "__INDEX__" (compile/parse-tree callable)
                               (list (compile/parse-tree expression) (compile/parse-tree right-value))
                               EQ *parse-tree*)]
-  [(statement @call COLON (right-value @function))
+  [(right-value @call COLON (right-value @function))
    (define-values (caller argument-parse-tree-list) (break-call-up call))
    (new call%
         (caller-ast (compile/parse-tree caller))
@@ -162,7 +162,7 @@
         (suffix-ast (compile/parse-tree function))
         (suffix-type 'function)
         (parse-tree *parse-tree*))]
-  [(statement @call COLON (right-value @package))
+  [(right-value @call COLON (right-value @package))
    (define-values (caller argument-parse-tree-list) (break-call-up call))
    (new call%
         (caller-ast (compile/parse-tree caller))
@@ -170,7 +170,7 @@
         (suffix-ast (compile/parse-tree package))
         (suffix-type 'package)
         (parse-tree *parse-tree*))]
-  [(statement @call COLON @right-value)
+  [(right-value @call COLON @right-value)
    (define-values (caller argument-parse-tree-list) (break-call-up call))
    (new call%
         (caller-ast (compile/parse-tree caller))

@@ -22,14 +22,14 @@
   (statement right-value
              (USE right-value)
              (DEF left-value EQ right-value)
-             (callable EQ right-value)
-             (call COLON right-value))
+             (callable EQ right-value))
   (left-value IDENT
               (IDENT ROUNDLEFT ROUNDRIGHT)
               (IDENT ROUNDLEFT parameter-list ROUNDRIGHT)
               (PACKAGE DOT IDENT)
               (IDENT DOT IDENT))
   (right-value (expression SEMICOLON)
+               (call COLON right-value)
                (CURLYLEFT program CURLYRIGHT)
                package
                function
