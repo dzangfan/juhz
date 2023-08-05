@@ -1,0 +1,5 @@
+use package.builtin;
+
+load("string.rkt");
+
+def stringFrom = package.string_.toString;

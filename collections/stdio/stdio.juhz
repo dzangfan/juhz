@@ -2,10 +2,13 @@ use package.builtin;
 
 load("stdio.rkt");
 
+use package.string;
+
 def _printString = package.stdio_.print;
 def flush = package.stdio_.flush;
 
-def println(string) = {
+def println(object) = {
+  def string = stringFrom(object);
   _printString(string);
   _printString("\n");
   flush();

@@ -1,6 +1,7 @@
-;; List the first 30 fibonacci numbers
+;; List the first 15 fibonacci numbers
 
 use package.array;
+use package.stdio;
 
 def fib(n) = {
   def a = 0;
@@ -17,9 +18,9 @@ def fib(n) = {
 def i = 0;
 def fibNumbers = [];
 
-while i < 30 {
+while i < 10 {
   push(fib(i), fibNumbers);
   i = i + 1;
 }
 
-fibNumbers;
+println(fibNumbers);

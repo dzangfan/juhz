@@ -74,9 +74,12 @@
       [(list #\\ char rest-chars ...) (build rest-chars (cons char collected-chars))]
       [(list char rest-chars ...) (build rest-chars (cons char collected-chars))])))
 
-(define (make-object/STRING string)
+(define (make-object/STRING+escape string)
   (let ([content (substring string 1 (sub1 (string-length string)))])
-    (object 'string (encode-string content) (extend-package (unbox base-package/STRING)))))
+    (make-object/STRING (encode-string content))))
+
+(define (make-object/STRING content)
+  (object 'string content (extend-package (unbox base-package/STRING))))
 
 (define (make-object/BOOLEAN true?)
   (object 'boolean true? (extend-package (unbox base-package/BOOLEAN))))
@@ -146,7 +149,7 @@
               [(struct token ('NUMBER text _))
                (make-object/NUMBER (string->number text))]
               [(struct token ('STRING text _))
-               (make-object/STRING text)]
+               (make-object/STRING+escape text)]
               [(struct token ('TRUE _ _))
                (make-object/BOOLEAN true)]
               [(struct token ('FALSE _ _))

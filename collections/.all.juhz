@@ -1,5 +1,6 @@
 use package.builtin;
 
 def package.utils = source("utils.juhz");
+def package.string = source("string/string.juhz");
 def package.array = source("array/array.juhz");
 def package.stdio = source("stdio/stdio.juhz");

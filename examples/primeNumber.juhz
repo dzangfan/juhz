@@ -1,6 +1,7 @@
-;; List the first 100 prime numbers
+;; List the first 20 prime numbers
 
 use package.array;
+use package.stdio;
 
 def isPrime(number) = {
   def check(i) = {
@@ -20,7 +21,7 @@ def isPrime(number) = {
 def primeNumbers = [];
 def candidate = 2;
 
-while length(primeNumbers) < 100 {
+while length(primeNumbers) < 20 {
   if isPrime(candidate) {
     push(candidate, primeNumbers);
   } else {
@@ -29,4 +30,4 @@ while length(primeNumbers) < 100 {
   candidate = candidate + 1;
 }
 
-primeNumbers;
+println(primeNumbers);
