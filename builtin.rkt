@@ -5,21 +5,22 @@
 (require "interpreter.rkt")
 
 (define-library-package builtin
-  (def (length array/string)
+  (def (length array/string maybe-length)
     (type-case "length"
-               (array/string)
-               [(array)
+               (array/string maybe-length)
+               [(array not-provided)
                 (make-object/NUMBER
                  (~> array/string object-value vector-length))]
-               [(string)
-                (make-object/NUMBER
-                 (~> array/string object-value string-length))]))
+               [(array number)
+                (let ([length+ (object-value maybe-length)]
+                      [vector (object-value array/string)])
+                  (set-object-value!
+                   array/string
+                   (if (<= length+ (vector-length vector))
+                       (vector-take vector length+)
+                       (vector-append vector
+                                      (make-vector (- length+ (vector-length vector))
+                                                   object/NOT-PROVIDED))))
+                  (make-object/BOOLEAN #f))]))
   (def NOT_PROVIDED object/NOT-PROVIDED)
-  (def UNDEFINED object/UNDEFINED)
-  (def (push elt array)
-    (type-case "push"
-               (array)
-               [(array)
-                (set-object-value! array (vector-append (object-value array)
-                                                        (vector elt)))
-                array])))
+  (def UNDEFINED object/UNDEFINED))
