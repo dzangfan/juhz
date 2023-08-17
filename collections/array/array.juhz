@@ -14,3 +14,16 @@ def push(elt, array) = such(array): ~(it) {
   length(it) = lastIdx + 1;
   it[lastIdx] = elt;
 }
+
+def onArray(array) = {
+  def currentIndex = 0;
+  function {
+    if currentIndex >= length(array) {
+      UNDEFINED;
+    } else {
+      return(array[currentIndex]): {
+	currentIndex = currentIndex + 1;
+      }
+    }
+  }
+}

@@ -1,5 +1,5 @@
-o* Juhz -- Toyish yet flexible programming language
-oo
+* Juhz -- Toyish yet flexible programming language
+
 ** Operators
 
 Every unary and binary operator corresponds to a hook function, meaning that such operations will be interpreted as a method invocation. Logical operation ~&&~ (and) and ~||~ (or) are exceptions since their operands must be evaluated lazily. In summary, except ~&&~ and ~||~, every operator is implemented by method defined in package, and those two exceptions cannot be customized. The following table lists all operators, as well as their priorities and hooks.

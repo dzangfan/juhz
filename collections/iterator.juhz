@@ -1,0 +1,20 @@
+
+use package.builtin;
+
+def iterate(iterator, action) = {
+  def value = iterator();
+  while value != UNDEFINED {
+    action(value);
+    value = iterator();
+  }
+  false;
+}
+
+def iteratorFrom(iterator, modifier) = function {
+  def value = iterator();
+  if value == UNDEFINED {
+    UNDEFINED;
+  } else {
+    modifier(value);
+  }
+}

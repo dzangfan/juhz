@@ -5,7 +5,9 @@
 
 (struct package (direct-mapping linked-package-list) #:transparent)
 
-(define root-package (package #hash() null))
+(define no-more-package null)
+
+(define root-package (package (make-hash) no-more-package))
 
 (define (extend-package parent-package)
   (package (make-hash) (list parent-package)))
@@ -15,7 +17,7 @@
   (package direct-mapping (cons used-package linked-package-list)))
 
 (define (find-in-package current-package name)
-  (cond [(eq? current-package root-package) #f]
+  (cond [(eq? current-package no-more-package) #f]
         [else (match-define (struct package (direct-mapping linked-package-list)) current-package)
               (if (hash-has-key? direct-mapping name)
                   (hash-ref direct-mapping name)
@@ -41,6 +43,10 @@
   (define direct-mapping* (hash-copy direct-mapping))
   (hash-set! direct-mapping* name value)
   (package direct-mapping* linked-package-list))
+
+(define (modify-root-package! name value)
+  (hash-set! (package-direct-mapping root-package)
+             name value))
 
 (struct object/function (argument-name-list body-ast package/env) #:transparent)
 
@@ -249,8 +255,9 @@
                   ([statement-ast (in-list statement-ast-list)])
           (~> statement-ast (send evaluate package/env*) result-package/env)))
       (define linked-package-list/new
-        (take linked-package-list (- (length linked-package-list)
-                                     (length (package-linked-package-list package/env)))))
+        (~> (take linked-package-list (- (length linked-package-list)
+                                         (length (package-linked-package-list package/env))))
+            (append (list root-package))))
       (result #f package/env (package direct-mapping linked-package-list/new)))))
 
 (define use%
@@ -368,7 +375,7 @@
                 (apply (append argument-ast-list (list suffix-ast)) identity)]
                ['package
                 (define base-package
-                  (~> suffix-ast (send evaluate package/env) object-package))
+                  (~> suffix-ast (send evaluate package/env) result-object object-package))
                 (apply argument-ast-list (lambda~>> (using-package base-package)))])]))))
 
 (define selection%

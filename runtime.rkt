@@ -107,6 +107,8 @@
        #'(add! name-string
                (make-standard-internal-function (length '(args ...))
                                                 (lambda (args ...) expr))))]
+    [(_ add! use! (def name expr ...))
+     #'(define-library-package-helper add! use! (def name (let () expr ...)))]
     [(_ _ use! (use expr))
      #'(use! expr)]
     [(_ _ _ expr) #'expr]))
@@ -120,5 +122,11 @@
            (define (use! expr) (set! package (using-package package expr)))
            (define-library-package-helper add! use! clauses) ...
            (library-package-set! name-string (make-object/PACKAGE package))))]))
+
+(modify-root-package! "__SAME__"
+                      (make-standard-internal-function 2 (lambda (a b) (make-object/BOOLEAN (eq? a b)))))
+
+(modify-root-package! "__DIFF__"
+                      (make-standard-internal-function 2 (lambda (a b) (make-object/BOOLEAN (not (eq? a b))))))
 
 (provide define-library-package)

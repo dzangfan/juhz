@@ -1,6 +1,8 @@
 use package.builtin;
 
 def package.utils = source("utils.juhz");
+def package.iterator = source("iterator.juhz");
 def package.string = source("string/string.juhz");
 def package.array = source("array/array.juhz");
+def package.reflection = source("reflection/reflection.juhz");
 def package.stdio = source("stdio/stdio.juhz");

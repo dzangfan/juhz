@@ -3,3 +3,22 @@ def such(object, modifier) = {
   modifier(object);
   object;
 }
+
+def return(object, action) =
+  such(object, action);
+
+def when(cond, action) = {
+  if cond {
+    action(cond);
+  } else {
+    false;
+  }
+}
+
+def unless(cond, action) = {
+  if cond {
+    false;
+  } else {
+    action(false);
+  }
+}

@@ -1,0 +1,31 @@
+use package.builtin;
+
+load("reflection.rkt");
+
+use package.reflection_;
+
+def suchPackage(specification) = {
+  def thatPackage = package {0;}
+  def modifier = package {
+    def has(fld, val) = {
+      definePackageField(thatPackage, fld) = val;
+    }
+    def uses(pkg) = usePackage(thatPackage, pkg);
+  }
+  specification(): package { def it = modifier; }
+  thatPackage;
+}
+
+use package.iterator;
+use package.array;
+
+def onPackage(pkg) = {
+  def fields = packageFields(pkg);
+  iteratorFrom(onArray(fields)): ~(name) {
+    package {
+      def name = name;
+      def value(newValue) =
+	packageField(pkg, name, newValue);
+    }
+  }
+}
