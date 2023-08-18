@@ -44,6 +44,11 @@
   (hash-set! direct-mapping* name value)
   (package direct-mapping* linked-package-list))
 
+(define (define-in-package! current-package name value)
+  (match-define (struct package (direct-mapping linked-package-list)) current-package)
+  (hash-set! direct-mapping name value)
+  current-package)
+
 (define (modify-root-package! name value)
   (hash-set! (package-direct-mapping root-package)
              name value))
@@ -222,7 +227,7 @@
                     (define value (find-in-package package))
                     (if (not value)
                         (report/unbound-variable (get-field parse-tree this) "Cannot export unbound symbol ~A from package" name)
-                        (define-in-package package/interface name value)))]))))
+                        (define-in-package! package/interface name value)))]))))
 
 (define function%
   (class ast%
@@ -296,7 +301,7 @@
     (super-new)
     (define/override (evaluate package/env)
       (define value-object (~> value-ast (send evaluate package/env) result-object))
-      (result (make-object/BOOLEAN #f) (define-in-package package/env name value-object) #f))))
+      (result (make-object/BOOLEAN #f) (define-in-package! package/env name value-object) #f))))
 
 (define function-definition%
   (class ast%
@@ -308,7 +313,7 @@
              (argument-name-list argument-name-list)
              (body-ast/basic-program body-ast/basic-program)))
       (define declarative-package/env
-        (define-in-package package/env name (make-object/BOOLEAN #f)))
+        (define-in-package! package/env name (make-object/BOOLEAN #f)))
       (define function-object (~> function-ast (send evaluate declarative-package/env) result-object))
       (modify-in-package! declarative-package/env name function-object)
       (result (make-object/BOOLEAN #f) declarative-package/env #f))))
@@ -330,7 +335,7 @@
       (define package/env+
         (or (and (modify-in-package! package/env name value-object)
                  package/env)
-            (define-in-package package/env name value-object)))
+            (define-in-package! package/env name value-object)))
       (result (make-object/BOOLEAN #f) package/env+ #f))))
 
 (define selection-assignment%
@@ -342,7 +347,7 @@
       (define prefix-object (~> prefix-ast (send evaluate package/env) result-object))
       (or (modify-in-package! (object-package prefix-object) name value-object)
           (set-object-package! prefix-object
-                               (define-in-package (object-package prefix-object) name value-object)))
+                               (define-in-package! (object-package prefix-object) name value-object)))
       (result (make-object/BOOLEAN #f) package/env #f))))
 
 (define package-assignment%
@@ -364,7 +369,7 @@
             ([name (in-list argument-name-list)]
              [object (sequence-append (in-list argument-object-list)
                                       (in-cycle (stream object/NOT-PROVIDED)))])
-    (define-in-package middle-package/env name object)))
+    (define-in-package! middle-package/env name object)))
 
 (define (juhz-apply function-like middle-package-modifier . arguments)
   (define argument-object-list (apply list* arguments))
