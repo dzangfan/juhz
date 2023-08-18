@@ -356,7 +356,10 @@
          (define argument-bound-package/env
            (bind-argument function-like argument-object-list))
          (result-object
-          (send body-ast evaluate (middle-package-modifier argument-bound-package/env)))]))
+          (send body-ast evaluate (middle-package-modifier argument-bound-package/env)))]
+        [else
+         (define applicable (find-field function-like "__APPLY__"))
+         (juhz-apply applicable middle-package-modifier argument-object-list)]))
 
 (define call%
   (class ast%
@@ -364,6 +367,9 @@
     (super-new)
     (define/override (evaluate package/env)
       (define caller-object (~> caller-ast (send evaluate package/env) result-object))
+      (unless (or (procedure? caller-object) (eq? 'function (object-type caller-object))
+                  (find-field caller-object "__APPLY__"))
+        (report/illegal-operation (get-field parse-tree caller-ast) "The object cannot be used as a function"))
       (define argument-object-list
         (map (lambda~> (send evaluate package/env) result-object) argument-ast-list))
       (define (juhz-apply* . args)

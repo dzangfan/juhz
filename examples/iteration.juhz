@@ -1,0 +1,8 @@
+
+def foo = package {
+  def __APPLY__(foo) = 10 + foo;
+}
+
+use package.stdio;
+
+println(foo(5));
