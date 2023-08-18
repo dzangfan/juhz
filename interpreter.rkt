@@ -54,6 +54,9 @@
 
 (struct result (object package/env reserved-data) #:transparent)
 
+(define (find-field object name)
+  (find-in-package (object-package object) name))
+
 (define base-package/NUMBER
   (box (extend-package root-package)))
 
@@ -117,7 +120,7 @@
   (hash-set! library-package-table package-name package-object))
 
 (define (library-package-ref package-name)
-  (hash-ref library-package-table package-name))
+  (hash-ref library-package-table package-name #f))
 
 (define ((report constructor) causal-parse-tree format-string . format-args)
   (raise (constructor (apply format format-string format-args)

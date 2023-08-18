@@ -1,8 +1,7 @@
 #lang racket
 
 (require threading)
-(require juhz/runtime)
-(require juhz/interpreter)
+(require juhz/api)
 
 (define (take n lst)
   (let take* ([n n] [lst lst] [rez null])

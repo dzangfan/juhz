@@ -1,7 +1,6 @@
 #lang racket
 
-(require juhz/runtime)
-(require juhz/interpreter)
+(require juhz/api)
 
 (define-library-package stdio_
   (def (print string)

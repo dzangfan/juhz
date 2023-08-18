@@ -1,8 +1,7 @@
 #lang racket
 
 (require threading)
-(require juhz/interpreter)
-(require juhz/runtime)
+(require juhz/api)
 
 (define-library-package reflection_
   (def (packageField pkg fld val)

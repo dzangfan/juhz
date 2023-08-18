@@ -1,8 +1,7 @@
 #lang racket
 
 (require threading)
-(require juhz/runtime)
-(require juhz/interpreter)
+(require juhz/api)
 
 (define-library-package array_
   (def (length array maybe-length)
