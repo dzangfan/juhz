@@ -1,4 +1,4 @@
-;; List the first 15 fibonacci numbers
+# List the first 15 fibonacci numbers
 
 use package.array;
 use package.stdio;

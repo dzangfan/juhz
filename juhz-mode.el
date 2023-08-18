@@ -144,7 +144,7 @@
 		(cons 'juhz-mode--post-self-insert post-self-insert-hook))))
 
 (define-generic-mode juhz-mode
-  '(";;")
+  '("#")
   '("if" "else" "while" "package" "function" "def" "use")
   '(("\\<true\\|false\\>" . font-lock-constant-face)
     ("\\([a-zA-Z_][a-zA-Z0-9_]*\\)(.*)" 1 font-lock-function-name-face)

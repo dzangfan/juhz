@@ -18,7 +18,7 @@
   (IF "\\bif\\b") (ELSE "\\belse\\b") (WHILE "\\bwhile\\b") (PACKAGE "\\bpackage\\b")
   (FUNCTION "\\bfunction\\b") (DEF "\\bdef\\b") (USE "\\buse\\b")
   (FUNCTION "~") (PACKAGE "@")
-  ";;.*"
+  "#.*"
   (program statement (statement program))
   (statement right-value
              (USE right-value)

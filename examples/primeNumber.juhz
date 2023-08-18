@@ -1,4 +1,4 @@
-;; List the first 20 prime numbers
+# List the first 20 prime numbers
 
 use package.array;
 use package.stdio;
