@@ -9,6 +9,8 @@ def makeArray(size) = such([]): ~(array) {
   length(array) = size;
 }
 
+def array = withArray(): ~(array) { array; }
+
 def push(elt, array) = such(array): ~(it) {
   def lastIdx = length(it);
   length(it) = lastIdx + 1;

@@ -20,4 +20,8 @@
                        (vector-append vector
                                       (make-vector (- length+ (vector-length vector))
                                                    object/NOT-PROVIDED))))
-                  (make-object/BOOLEAN #f))])))
+                  (make-object/BOOLEAN #f))]))
+  (def (withArray callable)
+    (lambda (argument-objects)
+      (juhz-apply callable identity
+                  (list (make-object/ARRAY (list->vector argument-objects)))))))

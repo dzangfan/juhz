@@ -3,7 +3,7 @@ use package.array;
 use package.stdio;
 use package.iterator;
 
-def primeNumbers(n) = such([]):
+def primeNumbers(n) = such(array()):
   iterator(onNumbersAfter(2))
   .filter(~(k) { iterator(onArray(it)).all(~(p) { k % p != 0; }); })
   .take(n)
