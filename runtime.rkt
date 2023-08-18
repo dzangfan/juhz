@@ -37,12 +37,7 @@
          report/runtime-error)
 
 (define (make-standard-internal-function number-of-argument procedure)
-  (lambda (argument-ast-list suffix-ast suffix-type package/env)
-    (when suffix-type
-      (report/illegal-operation suffix-ast "Standard internal functions cannot process functions with suffixes"))
-    (define argument-object-list
-      (for/list ([argument-ast (in-list argument-ast-list)])
-        (result-object (send argument-ast evaluate package/env))))
+  (lambda (argument-object-list)
     (define gap (- number-of-argument (length argument-object-list)))
     (cond [(zero? gap) (apply procedure argument-object-list)]
           [(positive? gap)

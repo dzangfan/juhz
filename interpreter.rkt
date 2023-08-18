@@ -344,39 +344,47 @@
                                       (in-cycle (stream object/NOT-PROVIDED)))])
     (define-in-package middle-package/env name object)))
 
+(define (juhz-apply function-like middle-package-modifier . arguments)
+  (define argument-object-list (apply list* arguments))
+  (cond [(procedure? function-like)
+         (function-like argument-object-list)]
+        [(eq? 'function (object-type function-like))
+         (define body-ast (~> function-like object-value object/function-body-ast))
+         (define argument-bound-package/env
+           (bind-argument function-like argument-object-list))
+         (result-object
+          (send body-ast evaluate (middle-package-modifier argument-bound-package/env)))]))
+
 (define call%
   (class ast%
     (init-field caller-ast argument-ast-list suffix-ast suffix-type)
     (super-new)
     (define/override (evaluate package/env)
       (define caller-object (~> caller-ast (send evaluate package/env) result-object))
-      (cond [(procedure? caller-object)
-             (result (caller-object argument-ast-list suffix-ast suffix-type package/env)
-                     package/env #f)]
-            [else
-             (define (apply argument-ast-list middle-package-modifier)
-               (define argument-object-list
-                 (map (lambda~> (send evaluate package/env) result-object) argument-ast-list))
-               (define body-ast (~> caller-object object-value object/function-body-ast))
-               (define argument-bound-package/env
-                 (bind-argument caller-object argument-object-list))
-               (result (result-object (send body-ast evaluate (middle-package-modifier argument-bound-package/env)))
-                       package/env #f))
-             (match suffix-type
-               [#f (apply argument-ast-list identity)]
-               ['normal
-                (define wrapper
-                  (new function%
-                       (argument-name-list null)
-                       (body-ast/basic-program suffix-ast)
-                       (parse-tree (get-field parse-tree suffix-ast))))
-                (apply (append argument-ast-list (list wrapper)) identity)]
-               ['function
-                (apply (append argument-ast-list (list suffix-ast)) identity)]
-               ['package
-                (define base-package
-                  (~> suffix-ast (send evaluate package/env) result-object object-package))
-                (apply argument-ast-list (lambda~>> (using-package base-package)))])]))))
+      (define argument-object-list
+        (map (lambda~> (send evaluate package/env) result-object) argument-ast-list))
+      (define (juhz-apply* . args)
+        (result (apply juhz-apply args) package/env #f))
+      (match suffix-type
+        [#f (juhz-apply* caller-object identity argument-object-list)]
+        ['normal
+         (define wrapper
+           (new function%
+                (argument-name-list null)
+                (body-ast/basic-program suffix-ast)
+                (parse-tree (get-field parse-tree suffix-ast))))
+         (define wrapper-object
+           (~> (send wrapper evaluate package/env)
+               result-object))
+         (juhz-apply* caller-object identity (append argument-object-list (list wrapper-object)))]
+        ['function
+         (define function-object
+           (~> (send suffix-ast evaluate package/env) result-object))
+         (juhz-apply* caller-object identity (append argument-object-list (list function-object)))]
+        ['package
+         (define base-package
+           (~> suffix-ast (send evaluate package/env) result-object object-package))
+         (juhz-apply* caller-object (lambda~>> (using-package base-package)) argument-object-list)]))))
 
 (define selection%
   (class ast%

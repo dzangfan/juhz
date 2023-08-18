@@ -2,3 +2,12 @@ use package.utils;
 use package.stdio;
 use package.iterator;
 use package.reflection;
+
+def foo = suchPackage(): {
+  it.has("name", "Joe");
+  it.has("age", 10);
+}
+
+println(foo.name);
+println(foo.age);
+println(foo);
