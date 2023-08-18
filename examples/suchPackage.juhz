@@ -1,0 +1,23 @@
+# A.juhz
+
+use package.reflection;
+
+def override(pkg, name, value) = suchPackage(): {
+  it.uses(pkg);
+  it.has(name, value);
+}
+
+# B.juhz using A.juhz to implement a sleepy toString
+
+use package.string;
+
+def package.string = override(package.string, "toString"): ~(object) {
+  toString(object) + "..zzZ";
+}
+
+# C.juhz loaded after B.juhz
+
+use package.stdio;
+use package.string;
+
+println(toString([2, 3, 5, 7, 13]));

@@ -1,0 +1,10 @@
+use package.stdio;
+use package.specialVariables;
+
+def nullify(n) = { n.value() = 0; }
+
+def counter = ref(10);
+
+nullify(counter);
+
+println(counter); #=> ref(0)

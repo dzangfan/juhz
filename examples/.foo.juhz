@@ -1,11 +1,19 @@
-def x = 0;
-
-def f = function { x = x + 1; }
-
-f();
-f();
-f();
-
 use package.stdio;
 
-println(x);
+def x = 10;
+
+def f(g) = g();
+
+f():
+  if x > 0 {
+    println(1);
+  } else {
+    println(0);
+  }
+
+f():
+  while x > 0 {
+    x = x - 1;
+  }
+
+f(): f(): f(): f(): println("Heart");

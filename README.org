@@ -1,5 +1,218 @@
 * Juhz -- Toyish yet flexible programming language
 
+#+begin_src python
+  use package.utils;
+  use package.array;
+  use package.stdio;
+  use package.iterator;
+
+  def primeNumbers(n) = such(array()):
+    iterator(onNumbersAfter(2))
+    .filter(~(k) { iterator(onArray(it)).all(~(p) { k % p != 0; }); })
+    .take(n)
+    .do(~(p) { push(p, it); })
+    .forAllElements();
+
+  println(primeNumbers(15));
+  #=> [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47]
+#+end_src
+
+~Juhz~ (/yoodz/) is a general-purpose programming language. Although this language is built by pure context-free grammar (language.rkt shows you how cumbersome for CFG to express operation priority), it at least looks like a modern language and has flexibility and originality at some level.
+
+** Introduction
+
+Data in ~Juhz~ can be classified in seven types:
+
+- ~boolean~, expressed by keywords ~true~ and ~false~
+- ~number~, e.g. ~1~, ~1.4~, ~.1~
+- ~string~, e.g. ~"hello"~ . Escaped character: ~\\~, ~\n~, ~\"~ (better than nothing)
+- ~array~, e.g. ~[1, 2, 3]~. Most of common operations like ~length~ can be found in standard library ~array~
+- ~function~, e.g. ~function (x) { x; }~
+- ~package~, e.g. ~package { def foo = bar; }~
+
+The first four types work as what you are thinking. Functions are constructed by keyword ~function~:
+
+1. ~function (arg1, arg2) { arg1 + arg2; }~
+2. ~function () { 0; }~
+3. ~function { 0; }~ (the same as 2.)
+
+Packages are used as both the libraries (e.g. ~package.stdio~) and data structures. In fact, every source files in ~Juhz~ will be wrapped by a ~package~ and every definition in it will be interpreted as a field. Although arbitrary statement can be put between the curly brackets of ~package~, the following two statements are important:
+
+1. ~def foo = bar;~
+2. ~use expr;~
+
+The former defines a field in the package and the latter "links" current package with another. For every identifier, the interpreter searchs in local definition introduced by ~def~ at first, and then recursively searchs in "used" packages. Arbitrary expressions can be used, as long as it returns something like a package.
+
+There are several variants of ~def~ statement. Let's call ~foo~ and ~bar~ in the example above left-value and right-value respectively. Left-value can be:
+
+1. ~foo~, identifier.
+2. ~f()~, ~f(a1, a2)~, function definition.
+3. ~package.foo~, library package definition.
+4. ~foo.bar~, customized definition.
+
+The first and the second are intuitive. The third defines ~foo~ as a library. The only difference between *library* and *ordinary package* is whether it is registered by keyword ~package~, like the third. After registry, you can access ~foo~ anywhere by keyword ~package~:
+
+#+begin_src python
+
+  # A.juhz
+
+  def package.foo = 1;
+
+  # B.juhz
+
+  package.foo; #=> 1
+#+end_src
+
+So in this case, ~package~ works as a global variable that can introduce new fields by ~def~.
+
+As to the forth, the following two statements are exactly equal.
+
+#+begin_src python
+  def foo.bar = quz;
+
+  ##################
+
+  use foo.__DEFINE__("bar", quz);
+#+end_src
+
+Regarding to the right-value, there are seven valid forms (boring, right?). Basically, for right-values, there are two rules:
+
+- For something end with ~}~, it forms a right-value
+- Otherwise, try to add a semicolon ~;~.
+
+Two abvious exceptions are definition, "use", and assignment. something like ~def foo = bar;~, ~use foo~ and ~foo = bar~ is not a right-value. Wrap them by curly brackets.
+
+Finally, tide (~\~~) and at (~@~) are equal to ~function~ and ~package~ respectively in token level. Therefore, the following two expression are equal:
+
+#+begin_src python
+  function { println("hello"); }
+
+  ##############################
+
+  ~{ println("hello"); }
+#+end_src
+
+** Special syntax
+
+As shown above, most syntax in ~Juhz~ are the same as most of modern programming languages. However, ~Juhz~ do have some original syntax which may confuse you. To begin with, function call can be put at the left side of assignment.
+
+#+begin_src python
+  length(array) = 10;
+#+end_src
+
+That is just a syntax sugar and it treats value at the right side as the last argument of the invocation. As a result, the example above is exactly equal to the following:
+
+#+begin_src python
+  length(array, 10);
+#+end_src
+
+This feature enables ~Juhz~ to define only one function to maintain a property, compared to languages like ~Java~. For example, ~package.specialVariables~ defines a function called ~ref~ to express modifiable state:
+
+#+begin_src python
+  use package.stdio;
+  use package.specialVariables;
+
+  def nullify(n) = { n.value() = 0; }
+
+  def counter = ref(10);
+
+  nullify(counter);
+
+  println(counter.value()); #=> 0
+#+end_src
+
+By the way, functions in ~Juhz~ can take arguments more than it declares (ignore the extra arguments) and arguments less than it declares (fill them by special constant ~NOT_PROVIDED~). Therefore, a simplified definition of ~ref~ is as follows:
+
+#+begin_src python
+  def ref(object) = @{
+    def value(newValue) = if newValue == NOT_PROVIDED {
+      object;
+    } else {
+      object = newValue;
+    }
+  }
+#+end_src
+
+Another special syntax is colon (~:~). Every function call can be followed by a colon and a expression (or right-value technically).
+
+#+begin_src python
+  when(x < 0): println(x);
+
+  when(x < 0): { x = -x; }
+
+  iterate(onArray([1, 2, 3])): ~(x) {
+    println(x);
+  }
+
+  action(x): @{ def it = x; }
+#+end_src
+
+The first three statements are just syntax sugar. For ordinary expressions, ~Juhz~ will wrap them as functions take no arguments, and pass them to the invocation as the last argument. For functions, they will be passed as the last argument directly. However, in the case of package (the forth statement), ~Juhz~ will introduce a intermediate level of environment for the invocation. In particular, assume that function ~action~ is defined as follows:
+
+#+begin_src python
+  def action(arg) = body;
+#+end_src
+
+Then when it is called as the forth statement, it will exprience the following steps:
+
+1. Bind ~arg~ to ~x~
+2. Bind ~it~ to ~x~
+3. Evaluate ~body~
+
+That means ~it~ is visible for ~body~. ~it~ is a famous name for this purpose. For example, ~suchPackage~ provided by ~package.reflection~ can construct a package dynamically:
+
+#+begin_src python
+  # A.juhz
+
+  use package.reflection;
+
+  def override(pkg, name, value) = suchPackage(): {
+    it.uses(pkg);
+    it.has(name, value);
+  }
+
+  # B.juhz using A.juhz to implement a sleepy toString
+
+  use package.string;
+
+  def package.string = override(package.string, "toString"): ~(object) {
+    toString(object) + "..zzZ";
+  }
+
+  # C.juhz loaded after B.juhz
+
+  use package.stdio;
+  use package.string;
+
+  println(toString([2, 3, 5, 7, 13]));
+#+end_src
+
+In this example, ~it~ is a package builder with two fields ~has~ and ~uses~.
+
+Btw. the following statement are also syntactical valid, but I don't think you need them.
+
+#+begin_src python
+  f():
+    if x > 0 {
+      println(1);
+    } else {
+      println(0);
+    }
+
+  f():
+    while x > 0 {
+      x = x - 1;
+    }
+
+  f(): f(): f(): f(): println("Heart");
+#+end_src
+
+** Installation
+
+As you guessed, racket is necessary.
+
+* Language reference (or something like that)
+
 ** Operators
 
 Every unary and binary operator corresponds to a hook function, meaning that such operations will be interpreted as a method invocation. Logical operation ~&&~ (and) and ~||~ (or) are exceptions since their operands must be evaluated lazily. In summary, except ~&&~ and ~||~, every operator is implemented by method defined in package, and those two exceptions cannot be customized. The following table lists all operators, as well as their priorities and hooks.
