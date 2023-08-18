@@ -26,12 +26,34 @@ def onNumbersAfter(start) = function {
   return(start): { start = start + 1; }
 }
 
-def onIterator(iterable) = package {
+def iterator(iterable) = package {
   def __APPLY__() = iterable();
   def toArray() = such([]): {
     iterate(iterable): ~(elt) { push(elt, it); }
   }
-  def map(mapper) = onIterator(): {
+  def fold(init, folder) = {
+    def acc = init;
+    iterate(iterable): ~(elt) {
+      acc = folder(acc, elt);
+    }
+    acc;
+  }
+  def all(predict) = fold(true): ~(acc, elt) {
+    acc && predict(elt);
+  }
+  def any(predict) = fold(false): ~(acc, elt) {
+    acc || predict(elt);
+  }
+  def forAllElements(action) = {
+    action = if action == NOT_PROVIDED {
+      constantly(UNDEFINED);
+    } else {
+      action;
+    }
+    iterate(iterable, action);
+    false;
+  }
+  def map(mapper) = iterator(): {
     def value = iterable();
     if value == UNDEFINED {
       UNDEFINED;
@@ -39,21 +61,25 @@ def onIterator(iterable) = package {
       mapper(value);
     }
   }
-  def filter(condition) = onIterator(): {
+  def do(action) = map(): ~(elt) {
+    action(elt);
+    elt;
+  }
+  def filter(condition) = iterator(): {
     def value = iterable();
     while value != UNDEFINED && !condition(value) {
       value = iterable();
     }
     value;
   }
-  def take(n) = onIterator(): {
+  def take(n) = iterator(): {
     if n > 0 {
       return(iterable()): { n = n - 1; }
     } else {
       UNDEFINED;
     }
   }
-  def takeWhile(condition) = onIterator(): {
+  def takeWhile(condition) = iterator(): {
     def value = iterable();
     if value != UNDEFINED && condition(value) {
       value;
