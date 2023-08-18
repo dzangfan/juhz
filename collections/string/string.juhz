@@ -2,4 +2,11 @@ use package.builtin;
 
 load("string.rkt");
 
-def stringFrom = package.string_.toString;
+use package.reflection;
+
+def primitiveToString = package.string_.toString;
+
+def toString(object) =
+  applyHook(object, "toString", []): ~{
+    primitiveToString(object);
+  }

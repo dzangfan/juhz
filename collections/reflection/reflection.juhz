@@ -29,3 +29,12 @@ def onPackage(pkg) = {
     }
   }
 }
+
+def applyHook(object, hookName, arguments, fallbackAction) = {
+  def hookObject = packageField(object, hookName);
+  if hookObject == UNDEFINED {
+    fallbackAction();
+  } else {
+    apply(hookObject, arguments);
+  }
+}

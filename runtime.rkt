@@ -47,7 +47,7 @@
            (apply procedure argument-object-list+)]
           [(negative? gap)
            (define argument-object-list-
-             (take number-of-argument argument-object-list))
+             (take argument-object-list number-of-argument))
            (apply procedure argument-object-list-)])))
 
 (define-syntax-rule (define-base-function base-package/* function-name (argument-list ...) body ...)

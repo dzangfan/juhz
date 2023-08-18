@@ -8,7 +8,7 @@ def _printString = package.stdio_.print;
 def flush = package.stdio_.flush;
 
 def println(object) = {
-  def string = stringFrom(object);
+  def string = toString(object);
   _printString(string);
   _printString("\n");
   flush();

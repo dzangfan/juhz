@@ -37,5 +37,8 @@
   (def (load filename)
     (type-case "load" (filename)
                [(string) (load-racket (object-value filename))]))
+  (def (apply function-like arguments)
+    (type-case "apply" (arguments)
+               [(array) (juhz-apply function-like identity (~> arguments object-value vector->list))]))
   (def NOT_PROVIDED object/NOT-PROVIDED)
   (def UNDEFINED object/UNDEFINED))
