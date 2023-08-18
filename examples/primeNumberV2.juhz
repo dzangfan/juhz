@@ -2,21 +2,12 @@ use package.utils;
 use package.array;
 use package.stdio;
 use package.iterator;
-use package.string;
 
-def it = [2, 3, 5];
+def primeNumbers(n) = such([]):
+  iterator(onNumbersAfter(2))
+  .filter(~(k) { iterator(onArray(it)).all(~(p) { k % p != 0; }); })
+  .take(n)
+  .do(~(p) { push(p, it); })
+  .forAllElements();
 
-;; println(iterator(onArray(it)).map(~(p) { 6 % p != 0; }).toArray());
-println(iterator(onArray(it)).all(~(p) { 6 % p != 0; }));
-
-
-
-;; def primeNumbers(n) = such([]):
-;;   iterator(onNumbersAfter(2))
-;;   .do(~{ println(it); })
-;;   .filter(~(k) { iterator(onArray(it)).all(~(p) { k % p != 0; }); })
-;;   .do(~(p) { push(p, it); })
-;;   .take(n)
-;;   .forAllElements();
-
-;; println(primeNumbers(20));
+println(primeNumbers(15));

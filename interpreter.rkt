@@ -20,7 +20,7 @@
   (cond [(eq? current-package no-more-package) #f]
         [else (match-define (struct package (direct-mapping linked-package-list)) current-package)
               (if (hash-has-key? direct-mapping name)
-                  (hash-ref direct-mapping name)
+                  (unbox (hash-ref direct-mapping name))
                   (for/first ([used-package (in-list linked-package-list)]
                               #:do [(define result (find-in-package used-package name))]
                               #:when result)
@@ -30,7 +30,7 @@
   (cond [(eq? current-package root-package) #f]
         [else (match-define (struct package (direct-mapping linked-package-list)) current-package)
               (if (hash-has-key? direct-mapping name)
-                  (begin (hash-set! direct-mapping name value) #t)
+                  (begin (set-box! (hash-ref direct-mapping name) value) #t)
                   (let try-in-linked-packages ([rest-packages linked-package-list])
                     (match rest-packages
                       [(list) #f]
@@ -41,12 +41,12 @@
 (define (define-in-package current-package name value)
   (match-define (struct package (direct-mapping linked-package-list)) current-package)
   (define direct-mapping* (hash-copy direct-mapping))
-  (hash-set! direct-mapping* name value)
+  (hash-set! direct-mapping* name (box value))
   (package direct-mapping* linked-package-list))
 
 (define (modify-root-package! name value)
   (hash-set! (package-direct-mapping root-package)
-             name value))
+             name (box value)))
 
 (struct object/function (argument-name-list body-ast package/env) #:transparent)
 
