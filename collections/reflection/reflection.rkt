@@ -25,4 +25,23 @@
     (~>> pkg object-package package-direct-mapping hash-keys
          (map make-object/STRING)
          list->vector
-         make-object/ARRAY)))
+         make-object/ARRAY))
+  (def TC_BOOLEAN (make-object/NUMBER 0))
+  (def TC_NUMBER (make-object/NUMBER 1))
+  (def TC_STRING (make-object/NUMBER 2))
+  (def TC_ARRAY (make-object/NUMBER 3))
+  (def TC_FUNCTION (make-object/NUMBER 4))
+  (def TC_PROCEDURE (make-object/NUMBER 5))
+  (def TC_PACKAGE (make-object/NUMBER 6))
+  (def TC_INTERNAL (make-object/NUMBER 7))
+  (def (typeCode object)
+    (if (procedure? object)
+        (make-object/NUMBER 5)
+        (type-case "typeCode" (object)
+                   [(boolean) (make-object/NUMBER 0)]
+                   [(number) (make-object/NUMBER 1)]
+                   [(string) (make-object/NUMBER 2)]
+                   [(array) (make-object/NUMBER 3)]
+                   [(function) (make-object/NUMBER 4)]
+                   [(package) (make-object/NUMBER 6)]
+                   [else (make-object/NUMBER 7)]))))
