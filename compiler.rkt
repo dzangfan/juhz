@@ -275,7 +275,7 @@
       (new condition%
            (cond-ast (compile/parse-tree left-operand))
            (true-case-ast (compile/parse-tree right-operand))
-           (make-object/BOOLEAN #f)
+           (false-case-ast (make-object/BOOLEAN #f))
            (parse-tree *parse-tree*))]
      [(list left-operand (struct token ('OR _ _)) right-operand)
       (new condition%

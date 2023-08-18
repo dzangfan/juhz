@@ -1,20 +1,64 @@
 
 use package.builtin;
+use package.array;
+use package.utils;
 
-def iterate(iterator, action) = {
-  def value = iterator();
+def iterate(iterable, action) = {
+  def value = iterable();
   while value != UNDEFINED {
     action(value);
-    value = iterator();
+    value = iterable();
   }
   false;
 }
 
-def iteratorFrom(iterator, modifier) = function {
-  def value = iterator();
-  if value == UNDEFINED {
-    UNDEFINED;
+def onNothing() = constantly(UNDEFINED);
+
+def onNumbersBetween(start, exEnd) = function {
+  if (start < exEnd) {
+    return(start): { start = start + 1; }
   } else {
-    modifier(value);
+    UNDEFINED;
+  }
+}
+
+def onNumbersAfter(start) = function {
+  return(start): { start = start + 1; }
+}
+
+def onIterator(iterable) = package {
+  def __APPLY__() = iterable();
+  def toArray() = such([]): {
+    iterate(iterable): ~(elt) { push(elt, it); }
+  }
+  def map(mapper) = onIterator(): {
+    def value = iterable();
+    if value == UNDEFINED {
+      UNDEFINED;
+    } else {
+      mapper(value);
+    }
+  }
+  def filter(condition) = onIterator(): {
+    def value = iterable();
+    while value != UNDEFINED && !condition(value) {
+      value = iterable();
+    }
+    value;
+  }
+  def take(n) = onIterator(): {
+    if n > 0 {
+      return(iterable()): { n = n - 1; }
+    } else {
+      UNDEFINED;
+    }
+  }
+  def takeWhile(condition) = onIterator(): {
+    def value = iterable();
+    if value != UNDEFINED && condition(value) {
+      value;
+    } else {
+      return(UNDEFINED): { iterable = onNothing(); }
+    }
   }
 }

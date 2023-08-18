@@ -1,8 +1,11 @@
 
-def foo = package {
-  def __APPLY__(foo) = 10 + foo;
-}
-
 use package.stdio;
+use package.iterator;
 
-println(foo(5));
+def oddsBefore(n) =
+  onIterator(onNumbersAfter(0))
+  .filter(~(k) { k % 2 != 0; })
+  .takeWhile(~(k) { k < n; }).toArray();
+
+println(oddsBefore(10));
+println(oddsBefore(100));

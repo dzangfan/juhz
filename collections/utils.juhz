@@ -1,6 +1,6 @@
 
 def such(object, modifier) = {
-  modifier(object);
+  modifier(object): @{ def it = object; }
   object;
 }
 
@@ -21,4 +21,8 @@ def unless(cond, action) = {
   } else {
     action(false);
   }
+}
+
+def constantly(value) = function {
+  value;
 }

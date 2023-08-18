@@ -175,6 +175,7 @@
       (define cond-object (~> (send cond-ast evaluate package/env) result-object))
       (cond [(and (object-true? cond-object) (eq? true-case-ast 'same-as-condition)) (result cond-object package/env #f)]
             [(object-true? cond-object) (send true-case-ast evaluate (extend-package package/env))]
+            [(object? false-case-ast) (result false-case-ast package/env #f)]
             [else (send false-case-ast evaluate (extend-package package/env))]))))
 
 (define loop%
