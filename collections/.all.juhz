@@ -6,3 +6,4 @@ def package.iterator = source("iterator.juhz");
 def package.reflection = source("reflection/reflection.juhz");
 def package.string = source("string/string.juhz");
 def package.stdio = source("stdio/stdio.juhz");
+def package.specialVariables = source("specialVariables.juhz");

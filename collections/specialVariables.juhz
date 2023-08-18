@@ -1,0 +1,38 @@
+use package.builtin;
+use package.utils;
+
+def _uniformToString(name, objectProducer) = @{
+  def toString() =
+    name + "(" + package.string.toString(objectProducer()) + ")";
+}
+
+def ref(object) = @{
+  def _object() = object;
+  use _uniformToString("ref", _object);
+  def value(newValue) = if newValue == NOT_PROVIDED {
+    object;
+  } else {
+    object = newValue;
+  }
+}
+
+def const(object) = @{
+  use _uniformToString("const", constantly(object));
+  def value() = object;
+}
+
+def parameter(object) = @{
+
+  def object = ref(object);
+
+  use object;
+  use _uniformToString("parameter", value);
+
+  def equalTo(value, action) = {
+    def object_ = object.value();
+    object.value() = value;
+    return(action()): {
+      object.value() = object_;
+    }
+  }
+}
