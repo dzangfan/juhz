@@ -186,6 +186,7 @@ That means ~it~ is visible for ~body~. ~it~ is a famous name for this purpose. F
   use package.string;
 
   println(toString([2, 3, 5, 7, 13]));
+  #=> [2, 3, 5, 7, 13]..zzZ
 #+end_src
 
 In this example, ~it~ is a package builder with two fields ~has~ and ~uses~.
