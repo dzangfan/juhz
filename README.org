@@ -25,7 +25,7 @@ Data in ~Juhz~ can be classified in seven types:
 
 - ~boolean~, expressed by keywords ~true~ and ~false~
 - ~number~, e.g. ~1~, ~1.4~, ~.1~
-- ~string~, e.g. ~"hello"~ . Escaped character: ~\\~, ~\n~, ~\"~ (better than nothing)
+- ~string~, e.g. ~"hello"~ . Escaped character: \\\\, \n, \\\" (better than nothing)
 - ~array~, e.g. ~[1, 2, 3]~. Most of common operations like ~length~ can be found in standard library ~array~
 - ~function~, e.g. ~function (x) { x; }~
 - ~package~, e.g. ~package { def foo = bar; }~
@@ -83,7 +83,7 @@ Regarding to the right-value, there are seven valid forms (boring, right?). Basi
 
 Two abvious exceptions are definition, "use", and assignment. something like ~def foo = bar;~, ~use foo~ and ~foo = bar~ is not a right-value. Wrap them by curly brackets.
 
-Finally, tilde and at (~@~) are equal to ~function~ and ~package~ respectively in token level. Therefore, the following two expression are equal:
+Finally, tilde (=~=) and at (~@~) are equal to ~function~ and ~package~ respectively in token level. Therefore, the following two expression are equal:
 
 #+begin_src elixir
   function { println("hello"); }
