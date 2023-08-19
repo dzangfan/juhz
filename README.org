@@ -1,6 +1,6 @@
 * Juhz -- Toyish yet flexible programming language
 
-#+begin_src python
+#+begin_src elixir
   use package.utils;
   use package.array;
   use package.stdio;
@@ -17,7 +17,7 @@
   #=> [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47]
 #+end_src
 
-~Juhz~ (/yoodz/) is a general-purpose programming language. Although this language is built by pure context-free grammar (language.rkt shows you how cumbersome for CFG to express operation priority), it at least looks like a modern language and has flexibility and originality at some level.
+~Juhz~ (/yoodz/) is a general-purpose programming language. Although this language is built by pure context-free grammar ([[https://github.com/dzangfan/juhz/blob/79af5d2ba7a417e5000e144fd8944519f537d6e4/language.rkt#L57][language.rkt]] shows you how cumbersome it is for CFG to express operation priority), it at least looks like a modern language and has flexibility and originality at some level.
 
 ** Introduction
 
@@ -29,6 +29,7 @@ Data in ~Juhz~ can be classified in seven types:
 - ~array~, e.g. ~[1, 2, 3]~. Most of common operations like ~length~ can be found in standard library ~array~
 - ~function~, e.g. ~function (x) { x; }~
 - ~package~, e.g. ~package { def foo = bar; }~
+- Others. Usually created by racket interfaces and opaque to ~Juhz~ facilities
 
 The first four types work as what you are thinking. Functions are constructed by keyword ~function~:
 
@@ -52,7 +53,7 @@ There are several variants of ~def~ statement. Let's call ~foo~ and ~bar~ in the
 
 The first and the second are intuitive. The third defines ~foo~ as a library. The only difference between *library* and *ordinary package* is whether it is registered by keyword ~package~, like the third. After registry, you can access ~foo~ anywhere by keyword ~package~:
 
-#+begin_src python
+#+begin_src elixir
 
   # A.juhz
 
@@ -67,7 +68,7 @@ So in this case, ~package~ works as a global variable that can introduce new fie
 
 As to the forth, the following two statements are exactly equal.
 
-#+begin_src python
+#+begin_src elixir
   def foo.bar = quz;
 
   ##################
@@ -82,9 +83,9 @@ Regarding to the right-value, there are seven valid forms (boring, right?). Basi
 
 Two abvious exceptions are definition, "use", and assignment. something like ~def foo = bar;~, ~use foo~ and ~foo = bar~ is not a right-value. Wrap them by curly brackets.
 
-Finally, tide (~\~~) and at (~@~) are equal to ~function~ and ~package~ respectively in token level. Therefore, the following two expression are equal:
+Finally, tilde and at (~@~) are equal to ~function~ and ~package~ respectively in token level. Therefore, the following two expression are equal:
 
-#+begin_src python
+#+begin_src elixir
   function { println("hello"); }
 
   ##############################
@@ -96,19 +97,19 @@ Finally, tide (~\~~) and at (~@~) are equal to ~function~ and ~package~ respecti
 
 As shown above, most syntax in ~Juhz~ are the same as most of modern programming languages. However, ~Juhz~ do have some original syntax which may confuse you. To begin with, function call can be put at the left side of assignment.
 
-#+begin_src python
+#+begin_src elixir
   length(array) = 10;
 #+end_src
 
 That is just a syntax sugar and it treats value at the right side as the last argument of the invocation. As a result, the example above is exactly equal to the following:
 
-#+begin_src python
+#+begin_src elixir
   length(array, 10);
 #+end_src
 
 This feature enables ~Juhz~ to define only one function to maintain a property, compared to languages like ~Java~. For example, ~package.specialVariables~ defines a function called ~ref~ to express modifiable state:
 
-#+begin_src python
+#+begin_src elixir
   use package.stdio;
   use package.specialVariables;
 
@@ -123,8 +124,8 @@ This feature enables ~Juhz~ to define only one function to maintain a property, 
 
 By the way, functions in ~Juhz~ can take arguments more than it declares (ignore the extra arguments) and arguments less than it declares (fill them by special constant ~NOT_PROVIDED~). Therefore, a simplified definition of ~ref~ is as follows:
 
-#+begin_src python
-  def ref(object) = @{
+#+begin_src elixir
+  def ref(object) = package {
     def value(newValue) = if newValue == NOT_PROVIDED {
       object;
     } else {
@@ -135,7 +136,7 @@ By the way, functions in ~Juhz~ can take arguments more than it declares (ignore
 
 Another special syntax is colon (~:~). Every function call can be followed by a colon and a expression (or right-value technically).
 
-#+begin_src python
+#+begin_src elixir
   when(x < 0): println(x);
 
   when(x < 0): { x = -x; }
@@ -149,7 +150,7 @@ Another special syntax is colon (~:~). Every function call can be followed by a 
 
 The first three statements are just syntax sugar. For ordinary expressions, ~Juhz~ will wrap them as functions take no arguments, and pass them to the invocation as the last argument. For functions, they will be passed as the last argument directly. However, in the case of package (the forth statement), ~Juhz~ will introduce a intermediate level of environment for the invocation. In particular, assume that function ~action~ is defined as follows:
 
-#+begin_src python
+#+begin_src elixir
   def action(arg) = body;
 #+end_src
 
@@ -161,7 +162,7 @@ Then when it is called as the forth statement, it will exprience the following s
 
 That means ~it~ is visible for ~body~. ~it~ is a famous name for this purpose. For example, ~suchPackage~ provided by ~package.reflection~ can construct a package dynamically:
 
-#+begin_src python
+#+begin_src elixir
   # A.juhz
 
   use package.reflection;
@@ -191,7 +192,7 @@ In this example, ~it~ is a package builder with two fields ~has~ and ~uses~.
 
 Btw. the following statement are also syntactical valid, but I don't think you need them.
 
-#+begin_src python
+#+begin_src elixir
   f():
     if x > 0 {
       println(1);
@@ -209,7 +210,23 @@ Btw. the following statement are also syntactical valid, but I don't think you n
 
 ** Installation
 
-As you guessed, racket is necessary.
+As you guessed, [[https://racket-lang.org/][racket]] is necessary. You can install this repo by ~raco~:
+
+#+begin_src bash
+raco pkg install https://github.com/dzangfan/juhz.git
+#+end_src
+
+This command will install runtime API (e.g. ~juhz/api~) and a executable ~juhz-run~ to your system. ~juhz-run~ is a easy interface to run ~Juhz~ code. Pass pathes of sources as commandline argument to run them sequentially. Optional flag ~-i~ enables ~juhz-run~ to read standard input port at the end.
+
+Note that there are no library system for ~Juhz~. I mean when you can access a package by ~package.lib~, there must be a statement like ~def package.lib = foo~. So dependencies should be loaded in advance. ~juhz-run~ will automatically load [[https://github.com/dzangfan/juhz/blob/main/collections/.all.juhz][.all.juhz]], which registers for standard libraries.
+
+Finally, [[https://github.com/dzangfan/juhz/blob/main/juhz-mode.el][juhz-mode.el]] provides basic syntax highlighting and indentation for ~.juhz~ files in Emacs. Add it to ~load-path~ and load it when needed. For example:
+
+#+begin_src emacs-lisp
+(use-package juhz-mode
+  :mode "\\.juhz$"
+  :load-path "/path/to/juhz")
+#+end_src
 
 * Language reference (or something like that)
 
@@ -219,7 +236,7 @@ Every unary and binary operator corresponds to a hook function, meaning that suc
 
 | priority | name         | operator       | example          | hook                 |
 |----------+--------------+----------------+------------------+----------------------|
-|        1 | logical or   | ~\vert\vert{}~ | ~a \vert\vert b~ | none                 |
+|        1 | logical or   | ~\vert\vert{}~ | ~a || b~ | none                 |
 |        2 | logical and  | ~&&~           | ~a && b~         | none                 |
 |        3 | equality     | ~==~           | ~a == b~         | ~a.__SAME__(a, b)~   |
 |        3 | difference   | ~!=~           | ~a != b~         | ~a.__DIFF__(a, b)~   |
