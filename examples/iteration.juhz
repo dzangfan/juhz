@@ -3,7 +3,7 @@ use package.stdio;
 use package.iterator;
 
 def oddsBefore(n) =
-  onIterator(onNumbersAfter(0))
+  iterator(onNumbersAfter(0))
   .filter(~(k) { k % 2 != 0; })
   .takeWhile(~(k) { k < n; }).toArray();
 

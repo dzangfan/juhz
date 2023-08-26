@@ -22,13 +22,26 @@
   (require "builtin.rkt")
 
   (define-runtime-path juhz-collection-path "collections")
-  
-  (void (source (build-path juhz-collection-path ".all.juhz")))
 
-  (define source-files (get-source-files))
+  (with-handlers
+    ([exn:fail:juhz?
+      (lambda (e)
+        (displayln "++ JUHZ ERROR ++")
+        (displayln (exn-message e)))]
+     [exn:fail:filesystem?
+      (lambda (e)
+        (displayln "++ IO ERROR ++")
+        (displayln (exn-message e)))]
+     [exn:fail? (lambda (e)
+                  (displayln "++ INTERNAL ERROR ++")
+                  (raise e))])
+    
+    (void (source (build-path juhz-collection-path ".all.juhz")))
 
-  (for ([file (in-list source-files)])
-    (juhz-eval (open-input-file file) (extend-package root-package)))
+    (define source-files (get-source-files))
 
-  (when (run-stdin?)
-    (void (juhz-eval (current-input-port) (extend-package root-package)))))
+    (for ([file (in-list source-files)])
+      (juhz-eval (open-input-file file) (extend-package root-package) #:file file))
+
+    (when (run-stdin?)
+      (void (juhz-eval (current-input-port) (extend-package root-package))))))

@@ -2,6 +2,7 @@
 
 (require basic-cc/tokenization)
 (require threading)
+(require "interface.rkt")
 
 (struct package (direct-mapping linked-package-list) #:transparent)
 
@@ -122,25 +123,11 @@
 (define (library-package-ref package-name)
   (hash-ref library-package-table package-name #f))
 
-(define (parse-tree->location-string parse-tree)
-  (define (parse-tree->oneside-location side-function parse-tree)
-    (if (token? parse-tree)
-        (token-location parse-tree)
-        (let ([children (rest parse-tree)])
-          (parse-tree->oneside-location side-function (side-function children)))))
-  (define left-most (parse-tree->oneside-location first parse-tree))
-  (define right-most (parse-tree->oneside-location last parse-tree))
-  (if (equal? left-most right-most)
-      (format "~A: L~AC~A" (location-file left-most)
-              (add1 (location-line left-most)) (add1 (location-column left-most)))
-      (format "~A: L~AC~A...L~AC~A" (location-file left-most)
-              (add1 (location-line left-most)) (add1 (location-column left-most))
-              (add1 (location-line right-most)) (add1 (location-column right-most)))))
-
 (define ((report constructor) causal-parse-tree format-string . format-args)
-  (raise (constructor (format "~A~%See [~A]"
+  (raise (constructor (format "~A~%See [~A]~%~A"
                               (apply format format-string format-args)
-                              (parse-tree->location-string causal-parse-tree))
+                              (parse-tree->location-string causal-parse-tree)
+                              (locate-source causal-parse-tree))
                       (current-continuation-marks))))
 
 (struct exn:fail:juhz exn:fail () #:transparent)

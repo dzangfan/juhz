@@ -1,19 +1,11 @@
+
 use package.stdio;
+use package.iterator;
 
-def x = 10;
+def oddsBefore(n) =
+  iterator(onNumbersAfter(0))
+  .filter(~(k) { k % 2 != 0; })
+  .takeWhile(~(k) { k < n; })
+  .juju.toArray();
 
-def f(g) = g();
-
-f():
-  if x > 0 {
-    println(1);
-  } else {
-    println(0);
-  }
-
-f():
-  while x > 0 {
-    x = x - 1;
-  }
-
-f(): f(): f(): f(): println("Heart");
+oddsBefore(10);

@@ -22,6 +22,14 @@ def onNumbersBetween(start, exEnd) = function {
   }
 }
 
+def onReversedNumbersBetween(exStart, end) = function {
+  if (end > exStart) {
+    return(end): { end = end - 1; }
+  } else {
+    UNDEFINED;
+  }
+}
+
 def onNumbersAfter(start) = function {
   return(start): { start = start + 1; }
 }

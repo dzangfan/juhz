@@ -29,3 +29,16 @@ def onArray(array) = {
     }
   }
 }
+
+def onIndexOfArray(array) = {
+  def currentIndex = 0;
+  function {
+    if currentIndex >= length(array) {
+      UNDEFINED;
+    } else {
+      return(currentIndex): {
+	currentIndex = currentIndex + 1;
+      }
+    }
+  }
+}
